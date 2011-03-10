@@ -28,7 +28,8 @@ import java.util.ArrayList;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
-import tetz42.util.WrapException;
+import tetz42.exception.FileNotFoundException;
+import tetz42.exception.WrapException;
 
 /**
  * Utility class for JUnit.
@@ -39,6 +40,35 @@ import tetz42.util.WrapException;
 public class Util {
 
 	public static final String CRLF = System.getProperty("line.separator");
+
+	public static void hideFile(String path) {
+		File file = new File(path);
+		if (!file.exists())
+			throw new FileNotFoundException(
+					"The file specfied might not be exsists. The path is:"
+							+ path);
+		String dirToHidePath = getDirToHide(file);
+		File dirToHide = new File(dirToHidePath);
+		if (!dirToHide.exists())
+			dirToHide.mkdirs();
+		file.renameTo(new File(dirToHidePath + "/" + file.getName()));
+	}
+
+	public static void restoreFile(String path) {
+		File file = new File(path);
+		File hiddenFile = new File(getDirToHide(file) + "/" + file.getName());
+		if (!hiddenFile.exists())
+			throw new FileNotFoundException(
+					"The file specfied might not be hidden. The path is:"
+							+ CRLF + "original path:" + path + CRLF
+							+ "hidden path:" + hiddenFile.getPath());
+		hiddenFile.renameTo(file);
+	}
+
+	private static String getDirToHide(File file) {
+		String parentPath = file.getParent();
+		return parentPath == null ? "hide" : "hide/" + parentPath;
+	}
 
 	/**
 	 * Assertion method for complicated object.<br>
@@ -85,29 +115,31 @@ public class Util {
 		String[] actuals = actStr.split(CRLF);
 		StringBuilder sb = new StringBuilder();
 		sb.append("Actual data doesn't match! Check the diff message below:")
-				.append(CRLF).append("  actual -> '-', expected -> '+'")
+				.append(CRLF).append("  expected -> '-', actual -> '+' ")
 				.append(CRLF).append(CRLF);
 		int i;
-		for (i = 0; i < actuals.length; i++) {
+		for (i = 0; i < actuals.length && i < expecteds.length; i++) {
 			if (actuals[i].equals(expecteds[i])) {
 				sb.append(padZero5(i)).append("|").append(actuals[i])
 						.append(CRLF);
 			} else {
-				sb.append(padZero5(i)).append("|-").append(actuals[i])
+				sb.append(padZero5(i)).append("|-").append(expecteds[i])
 						.append(CRLF);
-				sb.append(padZero5(i)).append("|+").append(expecteds[i])
+				sb.append(padZero5(i)).append("|+").append(actuals[i])
 						.append(CRLF);
 			}
 		}
 		for (int j = i; j < expecteds.length; j++)
-			sb.append(padZero5(j)).append("|+").append(expecteds[j])
+			sb.append(padZero5(j)).append("|-").append(expecteds[j])
 					.append(CRLF);
+		for (int j = i; j < actuals.length; j++)
+			sb.append(padZero5(j)).append("|+").append(actuals[j]).append(CRLF);
 
-		fail(sb.append(CRLF).toString());
+		fail(sb.toString());
 	}
 
 	private static String padZero5(int i) {
-		StringBuilder sb = new StringBuilder(String.valueOf(i));
+		StringBuilder sb = new StringBuilder(String.valueOf(i + 1));
 		while (sb.length() < 5)
 			sb.insert(0, "0");
 		return sb.toString();
