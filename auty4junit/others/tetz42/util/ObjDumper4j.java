@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 tetsuo.ohta[at]gmail.com
+ * Copyright 2011 tetsuo.ohta[at]gmail.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -467,7 +467,8 @@ public class ObjDumper4j {
 
 	private void dumpDate(Date date, String indent) {
 		if (sdformat == null)
-			sdformat = new SimpleDateFormat("EEE, MMM. d, yyyy 'at' HH:mm:ss.SSS", Locale.US);
+			sdformat = new SimpleDateFormat(
+					"EEE, MMM. d, yyyy 'at' HH:mm:ss.SSS", Locale.US);
 		sb.append(sdformat.format(date));
 	}
 
@@ -551,11 +552,9 @@ public class ObjDumper4j {
 			return;
 		}
 		try {
+			boolean isFieldAdded = false;
+			int startTimeLength = sb.length();
 			Class<? extends Object> clazz = obj.getClass();
-			if (clazz.getDeclaredFields().length == 0) {
-				sb.append(" }");
-				return;
-			}
 			String subIndent = indent + "\t";
 			while (true) {
 				for (Field f : clazz.getDeclaredFields()) {
@@ -563,6 +562,7 @@ public class ObjDumper4j {
 							.append(" = ");
 					if (readyForAccess(f, f.getModifiers()))
 						dumpObj(f.get(obj), subIndent);
+					isFieldAdded = true;
 				}
 
 				clazz = clazz.getSuperclass();
@@ -572,7 +572,10 @@ public class ObjDumper4j {
 				else
 					break;
 			}
-			sb.append(CRLF).append(indent).append("}");
+			if (isFieldAdded)
+				sb.append(CRLF).append(indent).append("}");
+			else
+				sb.delete(startTimeLength, sb.length()).append(" }");
 		} catch (Throwable t) {
 			dumpThrowable(t);
 		}
