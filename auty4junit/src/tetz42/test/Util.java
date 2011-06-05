@@ -187,7 +187,7 @@ public class Util {
 			extention = bundle.getString("expected_file.extention");
 		}
 		if (rootPath == null)
-			rootPath = "expected";
+			rootPath = "test";
 		if (extention == null)
 			extention = "txt";
 		String dirPath = rootPath + "/"

@@ -272,15 +272,19 @@ public class ObjDumper4j {
 		return new ObjDumper4j(objs) {
 			@Override
 			protected void dumpObj(Object obj) {
-				dumpBean(obj, "");
+				sb.append(initIndent);
+				dumpBean(obj, initIndent);
 			}
 		};
 	}
 
 	private final Object objs[];
-	private StringBuilder sb;
+	protected StringBuilder sb;
 	private String delimiter;
 	private Markable m;
+	private String indent = "\t";
+	protected String initIndent = "";
+	private boolean isStaticShow = false;
 
 	/**
 	 * Changes the algorithm to most safe type.
@@ -404,6 +408,41 @@ public class ObjDumper4j {
 		return this;
 	}
 
+	/**
+	 * Show static fields of dumped object.<br>
+	 * 
+	 * @return a reference to this object
+	 */
+	public ObjDumper4j showStatic() {
+		this.isStaticShow = true;
+		return this;
+	}
+
+	/**
+	 * Change indent literal of dumped string.<br>
+	 * The default value is <TAB>.
+	 * 
+	 * @param indent
+	 *            user specific indent.
+	 * @return a reference to this object
+	 */
+	public ObjDumper4j indent(String indent) {
+		this.indent = indent;
+		return this;
+	}
+
+	/**
+	 * Set initial indent of dumped string.<br>
+	 * 
+	 * @param indent
+	 *            user specific indent.
+	 * @return a reference to this object
+	 */
+	public ObjDumper4j initIndent(String initIndent) {
+		this.initIndent = initIndent;
+		return this;
+	}
+
 	protected ObjDumper4j(Object... objs) {
 		this.objs = objs;
 	}
@@ -435,9 +474,11 @@ public class ObjDumper4j {
 
 	protected void dumpObj(Object obj) {
 		if (obj instanceof String)
-			sb.append((String) obj);
-		else
-			dumpObj(obj, "");
+			sb.append(this.initIndent + obj);
+		else {
+			sb.append(this.initIndent);
+			dumpObj(obj, this.initIndent);
+		}
 	}
 
 	protected void dumpObj(Object obj, String indent) {
@@ -501,7 +542,7 @@ public class ObjDumper4j {
 			sb.append(" ]");
 			return;
 		}
-		String subIndent = indent + "\t";
+		String subIndent = indent + this.indent;
 		for (int i = 0; i < length; i++) {
 			sb.append(CRLF).append(subIndent);
 			dumpObj(Array.get(obj, i), subIndent);
@@ -515,7 +556,7 @@ public class ObjDumper4j {
 			sb.append("...]");
 			return;
 		}
-		String subIndent = indent + "\t";
+		String subIndent = indent + this.indent;
 		boolean isZero = true;
 		for (Object e : col) {
 			isZero = false;
@@ -535,7 +576,7 @@ public class ObjDumper4j {
 			sb.append(" }");
 			return;
 		}
-		String subIndent = indent + "\t";
+		String subIndent = indent + this.indent;
 		for (Map.Entry<?, ?> e : map.entrySet()) {
 			sb.append(CRLF).append(subIndent);
 			dumpObj(e.getKey(), subIndent);
@@ -555,9 +596,12 @@ public class ObjDumper4j {
 			boolean isFieldAdded = false;
 			int startTimeLength = sb.length();
 			Class<? extends Object> clazz = obj.getClass();
-			String subIndent = indent + "\t";
+			String subIndent = indent + this.indent;
 			while (true) {
 				for (Field f : clazz.getDeclaredFields()) {
+					if (!this.isStaticShow
+							&& Modifier.isStatic(f.getModifiers()))
+						continue;
 					sb.append(CRLF).append(subIndent).append(f.getName())
 							.append(" = ");
 					if (readyForAccess(f, f.getModifiers()))
