@@ -13,7 +13,7 @@
     </description>
 
 	<property name="basename" value="auty4junit" />
-	<property name="version" value="0.1.6" />
+	<property name="version" value="0.2.0" />
 	<property name="src" location="./src" />
 	<property name="others" location="./others" />
 	<property name="classes" location="./classes" />
@@ -34,7 +34,6 @@
 			<src path="${src}" />
 			<src path="${others}" />
 			<classpath>
-				<pathelement path="C:/tool/eclipse/plugins/org.junit_4.8.1.v4_8_1_v20100427-1100/junit.jar" />
 				<fileset dir="${lib}">
 					<include name="*.jar" />
 				</fileset>
