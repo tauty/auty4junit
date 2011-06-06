@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
@@ -106,11 +107,46 @@ public class Util {
 		}
 	}
 
-	private static void assertSameStrings(String expected, String actStr) {
+	public static void assertEqualsWithFile(Object actual, Class<?> clazz,
+			String expectedFileName, int... ignoreLineNo) {
+		String actStr = dumper(actual).superSafe().toString();
+		try {
+			Writer writer = null;
+			try {
+				File file = new File(genFilePath(clazz, expectedFileName));
+				if (file.exists()) {
+					String expected = loadFromStream(new FileInputStream(file));
+					assertSameStrings(expected, actStr, ignoreLineNo);
+				} else {
+					writer = new FileWriter(file);
+					writer.append(actStr).flush();
+					fail("No file found. The actual string has been output to the path:"
+							+ CRLF
+							+ file.getPath()
+							+ CRLF
+							+ " The contents is below:" + CRLF + actStr);
+				}
+			} finally {
+				if (writer != null)
+					writer.close();
+			}
+		} catch (IOException e) {
+			throw new WrapException(e.getMessage(), e);
+		}
+
+	}
+
+	private static void assertSameStrings(String expected, String actStr,
+			int... ignoreLineNo) {
 		if (expected.equals(actStr))
 			return; // OK!
 
 		// Build NG Message
+		HashSet<Integer> ignoreSet = new HashSet<Integer>();
+		for (int i : ignoreLineNo)
+			ignoreSet.add(i);
+
+		ArrayList<Integer> unmatched = new ArrayList<Integer>();
 		String[] expecteds = expected.split(CRLF);
 		String[] actuals = actStr.split(CRLF);
 		StringBuilder sb = new StringBuilder();
@@ -127,13 +163,34 @@ public class Util {
 						.append(CRLF);
 				sb.append(padZero5(i)).append("|+").append(actuals[i]).append(
 						CRLF);
+				if (!ignoreSet.contains(i))
+					unmatched.add(i);
 			}
 		}
-		for (int j = i; j < expecteds.length; j++)
+		for (int j = i; j < expecteds.length; j++) {
 			sb.append(padZero5(j)).append("|-").append(expecteds[j]).append(
 					CRLF);
-		for (int j = i; j < actuals.length; j++)
+			if (!ignoreSet.contains(j))
+				unmatched.add(j);
+		}
+		for (int j = i; j < actuals.length; j++) {
 			sb.append(padZero5(j)).append("|+").append(actuals[j]).append(CRLF);
+			if (!ignoreSet.contains(j))
+				unmatched.add(j);
+		}
+		if (unmatched.size() == 0) // it means this assertion error was ignored
+			return;
+
+		sb.append("You can ignore this assertion error to append ").append(
+				"parameters at 'assertEqualsWithFile' method like below:")
+				.append(CRLF);
+		sb.append("assertEqualsWithFile(foo, getClass(), \"file_name\"");
+		for (int k = 0; k < unmatched.size(); k++) {
+			if (k != 0)
+				sb.append(", ");
+			sb.append(k);
+		}
+		sb.append(");").append(CRLF);
 
 		fail(sb.toString());
 	}
