@@ -120,18 +120,18 @@ public class Util {
 		int i;
 		for (i = 0; i < actuals.length && i < expecteds.length; i++) {
 			if (actuals[i].equals(expecteds[i])) {
-				sb.append(padZero5(i)).append("|").append(actuals[i])
-						.append(CRLF);
+				sb.append(padZero5(i)).append("|").append(actuals[i]).append(
+						CRLF);
 			} else {
 				sb.append(padZero5(i)).append("|-").append(expecteds[i])
 						.append(CRLF);
-				sb.append(padZero5(i)).append("|+").append(actuals[i])
-						.append(CRLF);
+				sb.append(padZero5(i)).append("|+").append(actuals[i]).append(
+						CRLF);
 			}
 		}
 		for (int j = i; j < expecteds.length; j++)
-			sb.append(padZero5(j)).append("|-").append(expecteds[j])
-					.append(CRLF);
+			sb.append(padZero5(j)).append("|-").append(expecteds[j]).append(
+					CRLF);
 		for (int j = i; j < actuals.length; j++)
 			sb.append(padZero5(j)).append("|+").append(actuals[j]).append(CRLF);
 
@@ -180,21 +180,32 @@ public class Util {
 		} catch (MissingResourceException e) {
 			bundle = null;
 		}
-		String rootPath = null;
-		String extention = null;
-		if (bundle != null) {
-			rootPath = bundle.getString("expected_file.root.path");
-			extention = bundle.getString("expected_file.extention");
-		}
-		if (rootPath == null)
-			rootPath = "test";
-		if (extention == null)
-			extention = "txt";
-		String dirPath = rootPath + "/"
-				+ clazz.getName().toLowerCase().replaceAll("\\.", "/");
+		String rootPath = getBundle(bundle, "expected_file.root.path", "test");
+		String subfolder = getBundle(bundle, "expected_file.subfolder",
+				"expected");
+		String extention = getBundle(bundle, "expected_file.extention", "txt");
+
+		String dirPath = rootPath
+				+ "/"
+				+ clazz.getPackage().getName().toLowerCase().replaceAll("\\.",
+						"/") + "/" + subfolder + "/"
+				+ clazz.getSimpleName().toLowerCase();
 		File dir = new File(dirPath);
 		if (!dir.exists())
 			dir.mkdirs();
 		return dirPath + "/" + fileName + "." + extention;
+	}
+
+	private static String getBundle(ResourceBundle bundle, String key,
+			String defval) {
+		if (bundle != null) {
+			try {
+				String s = bundle.getString(key);
+				if (s != null)
+					return s;
+			} catch (MissingResourceException e) {
+			}
+		}
+		return defval;
 	}
 }
