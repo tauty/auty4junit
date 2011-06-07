@@ -144,7 +144,7 @@ public class Util {
 		// Build NG Message
 		HashSet<Integer> ignoreSet = new HashSet<Integer>();
 		for (int i : ignoreLineNo)
-			ignoreSet.add(i);
+			ignoreSet.add(i - 1);
 
 		ArrayList<Integer> unmatched = new ArrayList<Integer>();
 		String[] expecteds = expected.split(CRLF);
@@ -188,7 +188,7 @@ public class Util {
 		for (int k = 0; k < unmatched.size(); k++) {
 			if (k != 0)
 				sb.append(", ");
-			sb.append(k);
+			sb.append(unmatched.get(k) + 1);
 		}
 		sb.append(");").append(CRLF);
 
