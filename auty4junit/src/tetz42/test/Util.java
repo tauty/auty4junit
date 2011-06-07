@@ -181,10 +181,10 @@ public class Util {
 		if (unmatched.size() == 0) // it means this assertion error was ignored
 			return;
 
-		sb.append("You can ignore this assertion error to append ").append(
-				"parameters at 'assertEqualsWithFile' method like below:")
-				.append(CRLF);
-		sb.append("assertEqualsWithFile(foo, getClass(), \"file_name\"");
+		sb.append(CRLF).append("You can ignore this assertion ").append(
+				"error to append parameters at 'assertEqualsWithFile' ")
+				.append("method like below:").append(CRLF);
+		sb.append("assertEqualsWithFile(foo, getClass(), \"file_name\", ");
 		for (int k = 0; k < unmatched.size(); k++) {
 			if (k != 0)
 				sb.append(", ");
