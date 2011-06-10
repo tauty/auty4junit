@@ -36,18 +36,30 @@ import tetz42.exception.WrapException;
  * Utility class for JUnit.
  * 
  * @author tetz
- * @version 0.1.0
+ * @version 0.2.1
  */
 public class Util {
 
 	public static final String CRLF = System.getProperty("line.separator");
 
+	public static void swapFile(String path1, String path2) {
+		swapFile(new File(path1), new File(path2));
+	}
+
+	public static void swapFile(File file1, File file2) {
+		checkFileExists(file1, file2);
+		String hiddenPath = getDirToHide(file1) + "/" + file1.getName();
+		hideFile(file1);
+		file2.renameTo(file1);
+		new File(hiddenPath).renameTo(file2);
+	}
+
 	public static void hideFile(String path) {
-		File file = new File(path);
-		if (!file.exists())
-			throw new FileNotFoundException(
-					"The file specfied might not be exsists. The path is:"
-							+ path);
+		hideFile(new File(path));
+	}
+
+	public static void hideFile(File file) {
+		checkFileExists(file);
 		String dirToHidePath = getDirToHide(file);
 		File dirToHide = new File(dirToHidePath);
 		if (!dirToHide.exists())
@@ -56,14 +68,31 @@ public class Util {
 	}
 
 	public static void restoreFile(String path) {
-		File file = new File(path);
+		restoreFile(new File(path));
+	}
+
+	public static void restoreFile(File file) {
 		File hiddenFile = new File(getDirToHide(file) + "/" + file.getName());
 		if (!hiddenFile.exists())
 			throw new FileNotFoundException(
 					"The file specfied might not be hidden. The path is:"
-							+ CRLF + "original path:" + path + CRLF
+							+ CRLF + "original path:" + file.getPath() + CRLF
 							+ "hidden path:" + hiddenFile.getPath());
 		hiddenFile.renameTo(file);
+	}
+
+	public static void checkFileExists(String... pathes) {
+		for (String path : pathes)
+			checkFileExists(new File(path));
+	}
+
+	public static void checkFileExists(File... files) {
+		for (File file : files) {
+			if (!file.exists())
+				throw new FileNotFoundException(
+						"The file specfied might not be exsists. The path is:"
+								+ file.getPath());
+		}
 	}
 
 	private static String getDirToHide(File file) {
@@ -156,20 +185,20 @@ public class Util {
 		int i;
 		for (i = 0; i < actuals.length && i < expecteds.length; i++) {
 			if (actuals[i].equals(expecteds[i])) {
-				sb.append(padZero5(i)).append("|").append(actuals[i]).append(
-						CRLF);
+				sb.append(padZero5(i)).append("|").append(actuals[i])
+						.append(CRLF);
 			} else {
 				sb.append(padZero5(i)).append("|-").append(expecteds[i])
 						.append(CRLF);
-				sb.append(padZero5(i)).append("|+").append(actuals[i]).append(
-						CRLF);
+				sb.append(padZero5(i)).append("|+").append(actuals[i])
+						.append(CRLF);
 				if (!ignoreSet.contains(i))
 					unmatched.add(i);
 			}
 		}
 		for (int j = i; j < expecteds.length; j++) {
-			sb.append(padZero5(j)).append("|-").append(expecteds[j]).append(
-					CRLF);
+			sb.append(padZero5(j)).append("|-").append(expecteds[j])
+					.append(CRLF);
 			if (!ignoreSet.contains(j))
 				unmatched.add(j);
 		}
@@ -181,8 +210,9 @@ public class Util {
 		if (unmatched.size() == 0) // it means this assertion error was ignored
 			return;
 
-		sb.append(CRLF).append("You can ignore this assertion ").append(
-				"error to append parameters at 'assertEqualsWithFile' ")
+		sb.append(CRLF)
+				.append("You can ignore this assertion ")
+				.append("error to append parameters at 'assertEqualsWithFile' ")
 				.append("method like below:").append(CRLF);
 		sb.append("assertEqualsWithFile(foo, getClass(), \"file_name\", ");
 		for (int k = 0; k < unmatched.size(); k++) {
@@ -200,6 +230,23 @@ public class Util {
 		while (sb.length() < 5)
 			sb.insert(0, "0");
 		return sb.toString();
+	}
+
+	public static String loadFile(String path) {
+		File file = new File(path);
+		checkFileExists(file);
+		String result;
+		try {
+			InputStream in = new FileInputStream(file);
+			try {
+				result = loadFromStream(in);
+			} finally {
+				in.close();
+			}
+		} catch (IOException e) {
+			throw new WrapException(e.getMessage(), e);
+		}
+		return result;
 	}
 
 	private static String loadFromStream(InputStream in) throws IOException {
@@ -234,7 +281,7 @@ public class Util {
 		ResourceBundle bundle;
 		try {
 			bundle = ResourceBundle.getBundle("auty");
-		} catch (MissingResourceException e) {
+		} catch (MissingResourceException ignore) {
 			bundle = null;
 		}
 		String rootPath = getBundle(bundle, "expected_file.root.path", "test");
@@ -244,8 +291,8 @@ public class Util {
 
 		String dirPath = rootPath
 				+ "/"
-				+ clazz.getPackage().getName().toLowerCase().replaceAll("\\.",
-						"/") + "/" + subfolder + "/"
+				+ clazz.getPackage().getName().toLowerCase()
+						.replaceAll("\\.", "/") + "/" + subfolder + "/"
 				+ clazz.getSimpleName().toLowerCase();
 		File dir = new File(dirPath);
 		if (!dir.exists())
@@ -260,7 +307,7 @@ public class Util {
 				String s = bundle.getString(key);
 				if (s != null)
 					return s;
-			} catch (MissingResourceException e) {
+			} catch (MissingResourceException ignore) {
 			}
 		}
 		return defval;

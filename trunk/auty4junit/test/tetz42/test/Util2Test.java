@@ -15,6 +15,7 @@
  */
 package tetz42.test;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import static tetz42.test.Util.*;
 
@@ -75,4 +76,21 @@ public class Util2Test {
 		assertFalse(new File("hide/testdir/subdir/testfile.txt").exists());
 	}
 
+	@Test
+	public void swap(){
+		String path1 = "testdir/subdir/file1.txt";
+		String path2 = "testdir/subdir2/file2.txt";
+		checkFileExists(path1, path2);
+		
+		assertThat(loadFile(path1), is("file1.txt"));
+		assertThat(loadFile(path2), is("file2.txt"));
+		
+		swapFile(path1, path2);
+		assertThat(loadFile(path1), is("file2.txt"));
+		assertThat(loadFile(path2), is("file1.txt"));
+		
+		swapFile(path1, path2);
+		assertThat(loadFile(path1), is("file1.txt"));
+		assertThat(loadFile(path2), is("file2.txt"));
+	}
 }
