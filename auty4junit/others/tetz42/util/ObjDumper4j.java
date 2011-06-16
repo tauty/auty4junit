@@ -124,8 +124,8 @@ public class ObjDumper4j {
 			prop.load(ObjDumper4j.class
 					.getResourceAsStream("ObjDumper4j.properties"));
 			for (Map.Entry<Object, Object> entry : prop.entrySet())
-				map.put(String.valueOf(entry.getKey()),
-						String.valueOf(entry.getValue()).trim());
+				map.put(String.valueOf(entry.getKey()), String.valueOf(
+						entry.getValue()).trim());
 		} catch (Throwable e) {
 		}
 		primitiveMap = Collections.unmodifiableMap(map);
@@ -494,9 +494,9 @@ public class ObjDumper4j {
 			sb.append("" + obj);
 		else if (obj.getClass().isArray())
 			dumpAry(obj, indent);
-		else if (obj instanceof Iterable)
+		else if (Iterable.class.isInstance(obj))
 			dumpIterable((Iterable<?>) obj, indent);
-		else if (obj instanceof Map)
+		else if (Map.class.isInstance(obj))
 			dumpMap((Map<?, ?>) obj, indent);
 		else if (obj instanceof Throwable)
 			dumpThrowable((Throwable) obj);
@@ -611,8 +611,8 @@ public class ObjDumper4j {
 
 				clazz = clazz.getSuperclass();
 				if (clazz != null && clazz != Object.class)
-					sb.append(CRLF).append(subIndent).append("[")
-							.append(clazz.getName()).append("]");
+					sb.append(CRLF).append(subIndent).append("[").append(
+							clazz.getName()).append("]");
 				else
 					break;
 			}
