@@ -185,20 +185,20 @@ public class Util {
 		int i;
 		for (i = 0; i < actuals.length && i < expecteds.length; i++) {
 			if (actuals[i].equals(expecteds[i])) {
-				sb.append(padZero5(i)).append("|").append(actuals[i])
-						.append(CRLF);
+				sb.append(padZero5(i)).append("|").append(actuals[i]).append(
+						CRLF);
 			} else {
 				sb.append(padZero5(i)).append("|-").append(expecteds[i])
 						.append(CRLF);
-				sb.append(padZero5(i)).append("|+").append(actuals[i])
-						.append(CRLF);
+				sb.append(padZero5(i)).append("|+").append(actuals[i]).append(
+						CRLF);
 				if (!ignoreSet.contains(i))
 					unmatched.add(i);
 			}
 		}
 		for (int j = i; j < expecteds.length; j++) {
-			sb.append(padZero5(j)).append("|-").append(expecteds[j])
-					.append(CRLF);
+			sb.append(padZero5(j)).append("|-").append(expecteds[j]).append(
+					CRLF);
 			if (!ignoreSet.contains(j))
 				unmatched.add(j);
 		}
@@ -210,9 +210,8 @@ public class Util {
 		if (unmatched.size() == 0) // it means this assertion error was ignored
 			return;
 
-		sb.append(CRLF)
-				.append("You can ignore this assertion ")
-				.append("error to append parameters at 'assertEqualsWithFile' ")
+		sb.append(CRLF).append("You can ignore this assertion ").append(
+				"error to append parameters at 'assertEqualsWithFile' ")
 				.append("method like below:").append(CRLF);
 		sb.append("assertEqualsWithFile(foo, getClass(), \"file_name\", ");
 		for (int k = 0; k < unmatched.size(); k++) {
@@ -291,9 +290,8 @@ public class Util {
 
 		String dirPath = rootPath
 				+ "/"
-				+ clazz.getPackage().getName().toLowerCase()
-						.replaceAll("\\.", "/") + "/" + subfolder + "/"
-				+ clazz.getSimpleName().toLowerCase();
+				+ clazz.getPackage().getName().toLowerCase().replaceAll("\\.",
+						"/") + "/" + subfolder + "/" + clazz.getSimpleName();
 		File dir = new File(dirPath);
 		if (!dir.exists())
 			dir.mkdirs();
