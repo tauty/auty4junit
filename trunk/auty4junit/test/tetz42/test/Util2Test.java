@@ -17,7 +17,7 @@ package tetz42.test;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
-import static tetz42.test.Util.*;
+import static tetz42.test.Auty.*;
 
 import java.io.File;
 
