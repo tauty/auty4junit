@@ -1,0 +1,4 @@
+select 
+	TNAME 
+From 
+	tab
