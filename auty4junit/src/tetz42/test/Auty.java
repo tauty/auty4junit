@@ -38,7 +38,7 @@ import tetz42.exception.WrapException;
  * @author tetz
  * @version 0.2.1
  */
-public class Util {
+public class Auty {
 
 	public static final String CRLF = System.getProperty("line.separator");
 
