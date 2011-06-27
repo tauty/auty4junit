@@ -20,7 +20,8 @@ import tetz42.exception.TableNotFoundException;
 
 public class AutyDB {
 
-	private static final String BK_PREFIX = "ZUTY_BK_";
+	// TODO table name must be less than 30.
+	private static final String BK_PREFIX = "ZUTY_";
 	private static final String TESTCASE_FIELD = "ZUTY_TESTCASE_NAME";
 
 	public static final String CRLF = System.getProperty("line.separator");
@@ -66,6 +67,7 @@ public class AutyDB {
 			String... tableNames) throws SQLException {
 		for (String tableName : tableNames) {
 			String bkName = BK_PREFIX + tableName;
+			createIf(tableName, bkName);
 			assertDB(tableName, bkName, clazz.getName() + "#" + testCaseName
 					+ "|expected");
 		}
