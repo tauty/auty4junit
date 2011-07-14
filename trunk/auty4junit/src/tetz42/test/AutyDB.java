@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import tetz42.clione.SQLManager;
@@ -20,7 +21,6 @@ import tetz42.exception.TableNotFoundException;
 
 public class AutyDB {
 
-	// TODO table name must be less than 30.
 	private static final String BK_PREFIX = "ZUTY_";
 	private static final String TESTCASE_FIELD = "ZUTY_TESTCASE_NAME";
 
@@ -55,40 +55,53 @@ public class AutyDB {
 	public static void prepareDB(Class<?> clazz, String testCaseName,
 			String... tableNames) throws SQLException {
 		for (String tableName : tableNames) {
-			String bkName = BK_PREFIX + tableName;
+			String bkTableName = convBkTable(tableName);
+			createIf(tableName, bkTableName);
+			backUpIf(tableName, bkTableName);
+			restore(tableName, bkTableName, testCaseName + ".prepare#"
+					+ clazz.getName());
+		}
+	}
+
+	public static void deleteDB(Class<?> clazz, String testCaseName,
+			String... tableNames) throws SQLException {
+		for (String tableName : tableNames) {
+			String bkName = convBkTable(tableName);
 			createIf(tableName, bkName);
 			backUpIf(tableName, bkName);
-			restore(tableName, bkName, clazz.getName() + "#" + testCaseName
-					+ "|prepare");
+			sqlManager(con).useSQL("DELETE FROM " + tableName).update();
 		}
 	}
 
 	public static void assertDB(Class<?> clazz, String testCaseName,
 			String... tableNames) throws SQLException {
 		for (String tableName : tableNames) {
-			String bkName = BK_PREFIX + tableName;
-			createIf(tableName, bkName);
-			assertDB(tableName, bkName, clazz.getName() + "#" + testCaseName
-					+ "|expected");
+			String bkTableName = convBkTable(tableName);
+			createIf(tableName, bkTableName);
+			assertDB(tableName, bkTableName, testCaseName + ".expected#"
+					+ clazz.getName());
 		}
 	}
 
-	private static void assertDB(String tableName, String bkName,
+	private static void assertDB(String tableName, String bkTableName,
 			String testCaseName) throws SQLException {
 		SQLManager sqlManager = sqlManager(con);
 		int count = sqlManager.useSQL(
-				"SELECT COUNT(*) FROM " + bkName + " WHERE " + TESTCASE_FIELD
-						+ " = /* @testCase */").find(Integer.class,
-				params("testCase", testCaseName));
+				"SELECT COUNT(*) FROM " + bkTableName + " WHERE "
+						+ TESTCASE_FIELD + " = /* @testCase */").find(
+				Integer.class, params("testCase", testCaseName));
 		if (count == 0) {
-			count = sqlManager.useSQL(getRestoreSQL(tableName, bkName)).update(
-					params("tcName", testCaseName).$("bkName", backUpName));
+			// TODO this implementation doesn't allow the result record is 0.
+			count = sqlManager.useSQL(getRestoreSQL(tableName, bkTableName))
+					.update(
+							params("tcName", testCaseName).$("FROM_TABLE",
+									tableName));
 			fail("No expected data found. Tried to insert some datas as expected data."
 					+ CRLF
 					+ "Please check it by the SQL below:"
 					+ CRLF
 					+ "SELECT * FROM "
-					+ bkName
+					+ bkTableName
 					+ " WHERE "
 					+ TESTCASE_FIELD
 					+ " = '"
@@ -98,25 +111,74 @@ public class AutyDB {
 					+ "If you don't like it, delete it by the SQL below:"
 					+ CRLF
 					+ "DELETE FROM "
-					+ bkName
+					+ bkTableName
 					+ " WHERE "
 					+ TESTCASE_FIELD + " = '" + testCaseName + "'");
 		}
-		List<ResultMap> list = sqlManager.useSQL(
-				getAssertSQL(tableName, bkName)).findAll(
+		String assertSQL = getAssertSQL(tableName, bkTableName);
+		List<ResultMap> list = sqlManager.useSQL(assertSQL).findAll(
 				params("testCaseName", testCaseName));
 		if (list.size() == 0)
 			return;
 		StringBuilder sb = new StringBuilder();
 		int i = 0;
 		for (ResultMap map : list) {
-			sb.append(map).append(CRLF);
+			for (Entry<String, Object> entry : map.entrySet()) {
+				if (entry.getKey().startsWith("A_"))
+					sb.append("PK:").append(entry.getKey().substring(2))
+							.append("=").append(entry.getValue()).append("\t");
+				if (entry.getKey().startsWith("E_")) {
+					Object anotherValue = map.get("O_"
+							+ entry.getKey().substring(2));
+					if (isEquals(entry.getValue(), anotherValue)) {
+						continue;
+					}
+					sb.append("Not Equals[")
+							.append(entry.getKey().substring(2)).append(
+									"] expected:").append(entry.getValue())
+							.append(", but was:").append(anotherValue).append(
+									"\t");
+				}
+			}
+			sb.append(CRLF);
 			if (i++ > 10) {
-				sb.append(CRLF).append("Too much data!").append(CRLF);
+				sb.append(CRLF).append("Too much unmatch data!").append(CRLF);
 				break;
 			}
 		}
-		fail("Unmatch!" + CRLF + sb.toString());
+		fail("Unmatch!" + CRLF + "expected data's key:" + testCaseName + CRLF
+				+ sb.toString() + CRLF + assertSQL + CRLF + CRLF
+				+ "testCaseName:" + testCaseName);
+	}
+
+	public static void assertZero(Class<?> clazz, String testCaseName,
+			String... tableNames) throws SQLException {
+		for (String tableName : tableNames) {
+			String bkTableName = convBkTable(tableName);
+			assertZero(tableName, bkTableName, testCaseName + ".expected#"
+					+ clazz.getName());
+		}
+	}
+
+	private static void assertZero(String tableName, String bkTableName,
+			String testCaseName) throws SQLException {
+		SQLManager sqlManager = sqlManager(con);
+		int count = sqlManager.useSQL(
+				"SELECT COUNT(*) FROM " + bkTableName + " WHERE "
+						+ TESTCASE_FIELD + " = /* @testCase */").find(
+				Integer.class, params("testCase", testCaseName));
+		if (count != 0) {
+			fail("The record of " + tableName + " must be zero.");
+		}
+	}
+
+	private static boolean isEquals(Object o1, Object o2) {
+		if (o1 == null && o2 == null)
+			return true;
+		else if (o1 == null || o2 == null)
+			return false;
+		else
+			return o1.equals(o2);
 	}
 
 	public static synchronized void restoreAll() throws SQLException {
@@ -128,23 +190,29 @@ public class AutyDB {
 
 			if (!backUpMap.containsKey(tableName))
 				continue; // ignore the table has not backup.
-			restore(tableName, BK_PREFIX + tableName, backUpName);
+			String bkTableName = convBkTable(tableName);
+			restore(tableName, bkTableName, backUpName, false);
 			sqlManager.useSQL(
-					"DELETE FROM " + BK_PREFIX + tableName + " WHERE "
-							+ TESTCASE_FIELD + " = /* @bkName */").update(
+					"DELETE FROM " + bkTableName + " WHERE " + TESTCASE_FIELD
+							+ " = /* @bkName */").update(
 					params("bkName", backUpName));
 		}
 		backUpMap.clear();
 	}
 
-	private static void restore(String tableName, String bkName,
+	private static void restore(String tableName, String bkTableName,
 			String testCaseName) throws SQLException {
+		restore(tableName, bkTableName, testCaseName, true);
+	}
+
+	private static void restore(String tableName, String bkTableName,
+			String testCaseName, boolean isZeroFail) throws SQLException {
 		SQLManager sqlManager = sqlManager(con);
 		sqlManager.useSQL("DELETE FROM " + tableName).update();
-		String sql = getRestoreSQL(tableName, bkName);
+		String sql = getRestoreSQL(tableName, bkTableName);
 		int count = sqlManager.useSQL(sql).update(
 				params("TABLE", tableName).$("bkName", testCaseName));
-		if (count == 0) {
+		if (count == 0 && isZeroFail) {
 			count = sqlManager.useSQL(sql).update(
 					params("tcName", testCaseName).$("bkName", backUpName));
 			fail("No test case data found. Tried to insert some datas as test case data."
@@ -152,7 +220,7 @@ public class AutyDB {
 					+ "Please check it by the SQL below:"
 					+ CRLF
 					+ "SELECT * FROM "
-					+ bkName
+					+ bkTableName
 					+ " WHERE "
 					+ TESTCASE_FIELD
 					+ " = '"
@@ -162,30 +230,31 @@ public class AutyDB {
 					+ "If you don't like it, delete it by the SQL below:"
 					+ CRLF
 					+ "DELETE FROM "
-					+ bkName
+					+ bkTableName
 					+ " WHERE "
 					+ TESTCASE_FIELD + " = '" + testCaseName + "'");
 		}
 	}
 
-	private static String getRestoreSQL(String tableName, String bkName)
+	private static String getRestoreSQL(String tableName, String bkTableName)
 			throws SQLException {
 		if (!restoreSQLMap.containsKey(tableName)) {
 			SQLManager sqlManager = sqlManager(con);
 			List<ResultMap> list = sqlManager.useFile(AutyDB.class,
 					"SelectFields.sql").findAll(params("TABLE", tableName));
 			StringBuilder sb = new StringBuilder();
-			sb.append("INSERT INTO /*%if TABLE %STR(TABLE) */").append(bkName)
-					.append(CRLF);
+			sb.append("INSERT INTO /*%if TABLE %STR(TABLE) */").append(
+					bkTableName).append(CRLF);
 			sb.append("SELECT").append(CRLF).append("\t").append(
 					"/* $tcName */'tetz42.test.AutyDB#test'").append(CRLF);
 			for (ResultMap map : list) {
 				sb.append("\t,").append(map.get("COLUMN_NAME")).append(CRLF);
 			}
-			sb.append("FROM").append(CRLF).append("\t").append(bkName).append(
-					CRLF);
+			sb.append("FROM").append(CRLF).append("\t").append(
+					"/*%if FROM_TABLE %STR(FROM_TABLE) */").append(bkTableName)
+					.append(CRLF);
 			sb.append("WHERE").append(CRLF).append("\t").append(TESTCASE_FIELD)
-					.append(" = /* @bkName */'bk20110623-120000.000'");
+					.append(" = /* $bkName */'bk20110623-120000.000'");
 			restoreSQLMap.put(tableName, sb.toString());
 		}
 		return restoreSQLMap.get(tableName);
@@ -229,8 +298,7 @@ public class AutyDB {
 				sb2.append("\t\t\t");
 				if (i != 0)
 					sb2.append("AND ");
-				sb2.append("o.").append(pk).append(" = e.").append(pk).append(
-						CRLF);
+				sameQuery(sb2, pk);
 			}
 
 			sb2.append("WHERE").append(CRLF);
@@ -282,9 +350,10 @@ public class AutyDB {
 		sb.append("\t\t\te.").append(TESTCASE_FIELD).append(
 				" = /* @testCaseName */").append(
 				"'tetz42.test.AutyDBTest$1#test_sample|prepare'").append(CRLF);
-		for (String pk : pkList)
-			sb.append("\t\t\tAND o.").append(pk).append(" = e.").append(pk)
-					.append(CRLF);
+		for (String pk : pkList) {
+			sb.append("\t\t\tAND ");
+			sameQuery(sb, pk);
+		}
 	}
 
 	private static void buildWhere(StringBuilder sb, List<String> pkList,
@@ -295,11 +364,10 @@ public class AutyDB {
 		sb.append("\te.").append(aPK).append(" IS NULL").append(CRLF);
 
 		sb.append("\tOR (").append(CRLF);
-		sb.append("\t\to.").append(aPK).append(" = e.").append(aPK)
-				.append(CRLF);
-		for (int i = 1; i < pkList.size(); i++)
-			sb.append("\t\tAND o.").append(pkList.get(i)).append(" = e.")
-					.append(pkList.get(i)).append(CRLF);
+		sameQuery(sb.append("\t\t"), aPK);
+		for (int i = 1; i < pkList.size(); i++) {
+			sameQuery(sb.append("\t\tAND "), pkList.get(i));
+		}
 		sb.append("\t\tAND (").append(CRLF);
 		for (int i = 0; i < fieldList.size(); i++) {
 			ResultMap map = fieldList.get(i);
@@ -310,19 +378,18 @@ public class AutyDB {
 			if (i != 0) {
 				sb.append("OR ");
 			}
-			sb.append("o.").append(colName).append(" <> e.").append(colName)
-					.append(CRLF);
+			sameQuery(sb.append("NOT"), colName);
 		}
 		sb.append("\t\t)").append(CRLF);
 		sb.append("\t)").append(CRLF);
 	}
 
-	private static void createIf(String tableName, String bkName)
+	private static void createIf(String tableName, String bkTableName)
 			throws SQLException {
 		SQLManager sqlManager = sqlManager(con);
 		try {
 			List<ResultMap> list = sqlManager.useFile(AutyDB.class,
-					"SelectFields.sql").findAll(params("TABLE", bkName));
+					"SelectFields.sql").findAll(params("TABLE", bkTableName));
 			if (!list.isEmpty())
 				return; // exists
 
@@ -334,7 +401,7 @@ public class AutyDB {
 
 			// create
 			StringBuilder createSQL = new StringBuilder();
-			createSQL.append("CREATE TABLE ").append(bkName).append("(")
+			createSQL.append("CREATE TABLE ").append(bkTableName).append("(")
 					.append(CRLF);
 			createSQL.append("\t").append(TESTCASE_FIELD).append("\t").append(
 					"VARCHAR2(100) NOT NULL,").append(CRLF);
@@ -354,8 +421,7 @@ public class AutyDB {
 					createSQL.append("\t").append("NOT NULL");
 				createSQL.append(",").append(CRLF);
 			}
-			createSQL.append("\t").append("PRIMARY\tKEY(").append(
-					TESTCASE_FIELD);
+			createSQL.append("\t").append("UNIQUE (").append(TESTCASE_FIELD);
 			List<String> pkList = sqlManager.useFile(AutyDB.class,
 					"SelectPK.sql").findAll(String.class,
 					params("TABLE", tableName));
@@ -371,7 +437,7 @@ public class AutyDB {
 		}
 	}
 
-	private static void backUpIf(String tableName, String bkName)
+	private static void backUpIf(String tableName, String bkTableName)
 			throws SQLException {
 		if (backUpMap.containsKey(tableName)) {
 			System.out.println(tableName + " is already backup.");
@@ -382,12 +448,34 @@ public class AutyDB {
 		SQLManager sqlManager = sqlManager(con);
 		int count = sqlManager.useFile(AutyDB.class, "InsertBkDatas.sql")
 				.update(
-						params("BK_TABLE", bkName).$("TABLE", tableName).$(
-								"bkName", backUpName));
-		System.out.println(tableName + " is backup to " + bkName + " as '"
+						params("BK_TABLE", bkTableName).$("TABLE", tableName)
+								.$("bkName", backUpName));
+		System.out.println(tableName + " is backup to " + bkTableName + " as '"
 				+ backUpName + "'. count:" + count);
 
 		backUpMap.put(tableName, Boolean.TRUE);
+	}
+
+	private static String convBkTable(String tableName) throws SQLException {
+		String bkTableName = BK_PREFIX + tableName;
+		if (bkTableName.length() > 30) {
+			bkTableName = bkTableName.substring(0, 28) + "_" + 1;
+			// TODO
+			// for (int i = 1;; i++) {
+			// bkTableName += "_" + i;
+			// if (null == sqlManager(con).useFile(AutyDB.class,
+			// "SelectTables.sql").find(
+			// params("tableName", bkTableName)))
+			// break;
+			// }
+		}
+		return bkTableName;
+	}
+
+	private static void sameQuery(StringBuilder sb, String fieldName) {
+		sb.append("( ( o.").append(fieldName).append(" IS NULL AND e.").append(
+				fieldName).append(" IS NULL) OR o.").append(fieldName).append(
+				" = e.").append(fieldName).append(" )").append(CRLF);
 	}
 
 	private static boolean isEmpty(Object obj) {
