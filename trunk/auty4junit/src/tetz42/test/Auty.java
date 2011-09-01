@@ -110,7 +110,7 @@ public class Auty {
 	 */
 	public static void assertEqualsWithFile(Object actual, Class<?> clazz,
 			String expectedFileName) {
-		String actStr = dumper(actual).superSafe().toString();
+		String actStr = dumper(actual).superSafe().doSort().toString();
 		try {
 			Writer writer = null;
 			try {
@@ -138,7 +138,7 @@ public class Auty {
 
 	public static void assertEqualsWithFile(Object actual, Class<?> clazz,
 			String expectedFileName, int... ignoreLineNo) {
-		String actStr = dumper(actual).superSafe().toString();
+		String actStr = dumper(actual).superSafe().doSort().toString();
 		try {
 			Writer writer = null;
 			try {
