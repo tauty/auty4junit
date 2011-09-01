@@ -1,7 +1,0 @@
-HashMap{
-	"tako": "octopus"
-	"Math.PI": 3.141592553589793
-	"2011": 2011
-	"ika": "squid"
-	"namako": "sea cucmber"
-}

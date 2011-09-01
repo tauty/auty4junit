@@ -234,6 +234,8 @@ public class AutyDB {
 					+ " WHERE "
 					+ TESTCASE_FIELD + " = '" + testCaseName + "'");
 		}
+		System.out.println("" + count + " records has been inserted to "
+				+ tableName);
 	}
 
 	private static String getRestoreSQL(String tableName, String bkTableName)
@@ -330,7 +332,9 @@ public class AutyDB {
 					.append(")").append(" A_").append(pk).append(CRLF);
 		}
 		for (ResultMap map : fieldList) {
-			if ("DATE".equals(map.get("DATA_TYPE")))
+			if ("DATE".equals(map.get("DATA_TYPE"))
+					|| "CLOB".equals(map.get("DATA_TYPE"))
+					|| "BLOB".equals(map.get("DATA_TYPE")))
 				continue;
 			String colName = "" + map.get("COLUMN_NAME");
 			sb.append("\t,e.").append(colName).append(" E_").append(colName)
@@ -371,7 +375,9 @@ public class AutyDB {
 		sb.append("\t\tAND (").append(CRLF);
 		for (int i = 0; i < fieldList.size(); i++) {
 			ResultMap map = fieldList.get(i);
-			if ("DATE".equals(map.get("DATA_TYPE")))
+			if ("DATE".equals(map.get("DATA_TYPE"))
+					|| "CLOB".equals(map.get("DATA_TYPE"))
+					|| "BLOB".equals(map.get("DATA_TYPE")))
 				continue;
 			String colName = "" + map.get("COLUMN_NAME");
 			sb.append("\t\t\t");
@@ -473,9 +479,14 @@ public class AutyDB {
 	}
 
 	private static void sameQuery(StringBuilder sb, String fieldName) {
+		// sb.append("( ( o.").append(fieldName).append(" IS NULL AND e.").append(
+		// fieldName).append(" IS NULL) OR o.").append(fieldName).append(
+		// " = e.").append(fieldName).append(" )").append(CRLF);
 		sb.append("( ( o.").append(fieldName).append(" IS NULL AND e.").append(
-				fieldName).append(" IS NULL) OR o.").append(fieldName).append(
-				" = e.").append(fieldName).append(" )").append(CRLF);
+				fieldName).append(" IS NULL) OR (o.").append(fieldName).append(
+				" IS NOT NULL AND e.").append(fieldName).append(
+				" IS NOT NULL AND o.").append(fieldName).append(" = e.")
+				.append(fieldName).append(") )").append(CRLF);
 	}
 
 	private static boolean isEmpty(Object obj) {
