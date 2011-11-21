@@ -3,6 +3,7 @@ package tetz42.test;
 import static org.junit.Assert.*;
 import static tetz42.clione.SQLManager.*;
 
+import java.io.ObjectInputStream.GetField;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -246,12 +247,18 @@ public class AutyDB {
 					"SelectFields.sql").findAll(params("TABLE", tableName));
 			StringBuilder sb = new StringBuilder();
 			sb.append("INSERT INTO /*%if TABLE %STR(TABLE) */").append(
-					bkTableName).append(CRLF);
+			// bkTableName).append(CRLF);
+					bkTableName).append("(").append(CRLF);
+			sb.append("\tZUTY_TESTCASE_NAME /* &tcName */,").append(CRLF);
+			String fields = getFieldsString(list);
+			sb.append("\t").append(fields).append(CRLF);
+//			for (ResultMap map : list) {
+//				sb.append("\t,").append(map.get("COLUMN_NAME")).append(CRLF);
+//			}
+			sb.append(")").append(CRLF);
 			sb.append("SELECT").append(CRLF).append("\t").append(
-					"/* $tcName */'tetz42.test.AutyDB#test'").append(CRLF);
-			for (ResultMap map : list) {
-				sb.append("\t,").append(map.get("COLUMN_NAME")).append(CRLF);
-			}
+					"/* $tcName */'tetz42.test.AutyDB#test',").append(CRLF);
+			sb.append("\t").append(fields).append(CRLF);
 			sb.append("FROM").append(CRLF).append("\t").append(
 					"/*%if FROM_TABLE %STR(FROM_TABLE) */").append(bkTableName)
 					.append(CRLF);
@@ -450,16 +457,60 @@ public class AutyDB {
 			return;
 		}
 
-		// backup!
+		// get fields
 		SQLManager sqlManager = sqlManager(con);
+		List<ResultMap> list = sqlManager.useFile(AutyDB.class,
+				"SelectFields.sql").findAll(params("TABLE", tableName));
+		String fields = getFieldsString(list);
+
+		// backup!
 		int count = sqlManager.useFile(AutyDB.class, "InsertBkDatas.sql")
 				.update(
 						params("BK_TABLE", bkTableName).$("TABLE", tableName)
-								.$("bkName", backUpName));
+								.$("bkName", backUpName).$("fields", fields));
 		System.out.println(tableName + " is backup to " + bkTableName + " as '"
 				+ backUpName + "'. count:" + count);
 
 		backUpMap.put(tableName, Boolean.TRUE);
+	}
+
+	private static String getFieldsString(List<ResultMap> list) {
+		List<String> fields = map(list, new MyProc<String, ResultMap>() {
+
+			@Override
+			public String call(ResultMap param) {
+				return String.valueOf(param.get("COLUMN_NAME"));
+			}
+		});
+		return joinByComma(fields);
+	}
+
+	private static String joinByComma(List<?> list) {
+		return join(list, ", ");
+	}
+
+	private static String join(List<?> list, String delimiter) {
+		if (list == null || list.size() == 0) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append(list.get(0));
+		for (int i = 1; i < list.size(); i++) {
+			sb.append(delimiter).append(list.get(i));
+		}
+		return sb.toString();
+	}
+
+	private static interface MyProc<R, P> {
+		R call(P param);
+	}
+
+	private static <R, P> List<R> map(List<P> params, MyProc<R, P> proc) {
+		ArrayList<R> results = new ArrayList<R>();
+		for (P param : params) {
+			results.add(proc.call(param));
+		}
+		return results;
 	}
 
 	private static String convBkTable(String tableName) throws SQLException {
