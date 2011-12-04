@@ -3,7 +3,6 @@ package tetz42.test;
 import static org.junit.Assert.*;
 import static tetz42.clione.SQLManager.*;
 
-import java.io.ObjectInputStream.GetField;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -442,7 +441,6 @@ public class AutyDB {
 				createSQL.append(", ").append(key);
 			}
 			createSQL.append(")").append(CRLF).append(")");
-			System.out.println(createSQL);
 			sqlManager.useSQL(createSQL.toString()).update();
 			sqlManager.con().commit();
 		} finally {
