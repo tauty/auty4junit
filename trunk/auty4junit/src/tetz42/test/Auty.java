@@ -34,7 +34,7 @@ import tetz42.exception.WrapException;
 
 /**
  * Utility class for JUnit.
- * 
+ *
  * @author tetz
  * @version 0.2.1
  */
@@ -103,7 +103,7 @@ public class Auty {
 	/**
 	 * Assertion method for complicated object.<br>
 	 * It provides you an easy test environment.<br>
-	 * 
+	 *
 	 * @param actual
 	 * @param clazz
 	 * @param expectedFileName
@@ -138,7 +138,7 @@ public class Auty {
 
 	public static void assertEqualsWithFile(Object actual, Class<?> clazz,
 			String expectedFileName, int... ignoreLineNo) {
-		String actStr = dumper(actual).superSafe().doSort().toString();
+		String actStr = dumper(actual).superSafe().classFlatten().primitiveFirst().toString();
 		try {
 			Writer writer = null;
 			try {
