@@ -9,10 +9,10 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import tetz42.clione.exception.SQLRuntimeException;
-import tetz42.clione.exception.WrapException;
 import tetz42.test.DBConfig;
 import tetz42.test.Proc;
+import tetz42.util.exception.SQLRuntimeException;
+import tetz42.util.exception.WrapException;
 
 public class BackupManagerSample {
 

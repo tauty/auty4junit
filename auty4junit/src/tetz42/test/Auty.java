@@ -117,7 +117,14 @@ public class Auty {
 				File file = new File(genFilePath(clazz, expectedFileName));
 				if (file.exists()) {
 					String expected = loadFromStream(new FileInputStream(file));
-					assertSameStrings(expected, actStr);
+					try {
+						assertSameStrings(expected, actStr);
+					} catch (AssertionError e) {
+						file = new File(genFailPath(clazz, expectedFileName));
+						writer = new FileWriter(file);
+						writer.append(actStr).flush();
+						throw e;
+					}
 				} else {
 					writer = new FileWriter(file);
 					writer.append(actStr).flush();
@@ -145,7 +152,14 @@ public class Auty {
 				File file = new File(genFilePath(clazz, expectedFileName));
 				if (file.exists()) {
 					String expected = loadFromStream(new FileInputStream(file));
-					assertSameStrings(expected, actStr, ignoreLineNo);
+					try {
+						assertSameStrings(expected, actStr, ignoreLineNo);
+					} catch (AssertionError e) {
+						file = new File(genFailPath(clazz, expectedFileName));
+						writer = new FileWriter(file);
+						writer.append(actStr).flush();
+						throw e;
+					}
 				} else {
 					writer = new FileWriter(file);
 					writer.append(actStr).flush();
@@ -277,6 +291,14 @@ public class Auty {
 	}
 
 	private static String genFilePath(Class<?> clazz, String fileName) {
+		return genFilePath(clazz, fileName, "");
+	}
+
+	private static String genFailPath(Class<?> clazz, String fileName) {
+		return genFilePath(clazz, fileName, "/failed");
+	}
+
+	private static String genFilePath(Class<?> clazz, String fileName, String failedPath) {
 		ResourceBundle bundle;
 		try {
 			bundle = ResourceBundle.getBundle("auty");
@@ -291,7 +313,7 @@ public class Auty {
 		String dirPath = rootPath
 				+ "/"
 				+ clazz.getPackage().getName().toLowerCase().replaceAll("\\.",
-						"/") + "/" + subfolder + "/" + clazz.getSimpleName();
+						"/") + "/" + subfolder + "/" + clazz.getSimpleName() + failedPath;
 		File dir = new File(dirPath);
 		if (!dir.exists())
 			dir.mkdirs();

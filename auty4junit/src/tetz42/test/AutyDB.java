@@ -14,10 +14,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import tetz42.clione.SQLManager;
-import tetz42.clione.exception.SQLRuntimeException;
-import tetz42.clione.exception.WrapException;
 import tetz42.clione.util.ResultMap;
 import tetz42.exception.TableNotFoundException;
+import tetz42.util.exception.SQLRuntimeException;
+import tetz42.util.exception.WrapException;
 
 public class AutyDB {
 
