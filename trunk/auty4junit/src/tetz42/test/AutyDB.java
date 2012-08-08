@@ -14,10 +14,11 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import tetz42.clione.SQLManager;
+import tetz42.clione.common.exception.SQLRuntimeException;
+import tetz42.clione.common.exception.WrapException;
 import tetz42.clione.util.ResultMap;
 import tetz42.exception.TableNotFoundException;
-import tetz42.util.exception.SQLRuntimeException;
-import tetz42.util.exception.WrapException;
+import tetz42.util.ObjDumper4j;
 
 public class AutyDB {
 
@@ -245,7 +246,7 @@ public class AutyDB {
 			List<ResultMap> list = sqlManager.useFile(AutyDB.class,
 					"SelectFields.sql").findAll(params("TABLE", tableName));
 			StringBuilder sb = new StringBuilder();
-			sb.append("INSERT INTO /*%if TABLE %STR(TABLE) */").append(
+			sb.append("INSERT INTO /*%if TABLE %STR!(TABLE) */").append(
 			// bkTableName).append(CRLF);
 					bkTableName).append("(").append(CRLF);
 			sb.append("\tZUTY_TESTCASE_NAME /* &tcName */,").append(CRLF);
@@ -259,7 +260,7 @@ public class AutyDB {
 					"/* $tcName */'tetz42.test.AutyDB#test',").append(CRLF);
 			sb.append("\t").append(fields).append(CRLF);
 			sb.append("FROM").append(CRLF).append("\t").append(
-					"/*%if FROM_TABLE %STR(FROM_TABLE) */").append(bkTableName)
+					"/*%if FROM_TABLE %STR!(FROM_TABLE) */").append(bkTableName)
 					.append(CRLF);
 			sb.append("WHERE").append(CRLF).append("\t").append(TESTCASE_FIELD)
 					.append(" = /* $bkName */'bk20110623-120000.000'");
