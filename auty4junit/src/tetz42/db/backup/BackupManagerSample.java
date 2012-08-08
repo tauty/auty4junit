@@ -11,8 +11,6 @@ import java.util.Date;
 
 import tetz42.test.DBConfig;
 import tetz42.test.Proc;
-import tetz42.util.exception.SQLRuntimeException;
-import tetz42.util.exception.WrapException;
 
 public class BackupManagerSample {
 
@@ -73,7 +71,7 @@ public class BackupManagerSample {
 				"T_ANKEN", false, true);
 		ResultSetMetaData rsMeta = rs.getMetaData();
 		while (rs.next()) {
-			for (int i = 1; i < rsMeta.getColumnCount(); i++) {
+			for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
 				System.out.print(rsMeta.getColumnLabel(i));
 				System.out.print(":");
 				System.out.print(rs.getObject(i));
@@ -97,7 +95,7 @@ public class BackupManagerSample {
 		// ResultSet rs = metaData.getTables(null, null, null, null);
 		ResultSetMetaData rsMeta = rs.getMetaData();
 		while (rs.next()) {
-			for (int i = 1; i < rsMeta.getColumnCount(); i++) {
+			for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
 				System.out.print(rsMeta.getColumnLabel(i));
 				System.out.print(":");
 				System.out.print(rs.getObject(i));
@@ -118,7 +116,7 @@ public class BackupManagerSample {
 				"T_ANKEN_RRK");
 		ResultSetMetaData rsMeta = rs.getMetaData();
 		while (rs.next()) {
-			for (int i = 1; i < rsMeta.getColumnCount(); i++) {
+			for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
 				System.out.print(rsMeta.getColumnLabel(i));
 				System.out.print(":");
 				System.out.print(rs.getObject(i));
@@ -139,7 +137,7 @@ public class BackupManagerSample {
 				"T_ANKEN_RRK");
 		ResultSetMetaData rsMeta = rs.getMetaData();
 		while (rs.next()) {
-			for (int i = 1; i < rsMeta.getColumnCount(); i++) {
+			for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
 				System.out.print(rsMeta.getColumnLabel(i));
 				System.out.print(":");
 				System.out.print(rs.getObject(i));
@@ -181,7 +179,7 @@ public class BackupManagerSample {
 				"T_ANKEN");
 		ResultSetMetaData rsMeta = rs.getMetaData();
 		while (rs.next()) {
-			for (int i = 1; i < rsMeta.getColumnCount(); i++) {
+			for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
 				System.out.print(rsMeta.getColumnLabel(i));
 				System.out.print(":");
 				System.out.print(rs.getObject(i));
@@ -200,9 +198,9 @@ public class BackupManagerSample {
 						DBConfig.DB_CONNECT_USER, DBConfig.DB_CONNECT_PASS);
 				con.setAutoCommit(true);
 			} catch (SQLException e) {
-				throw new SQLRuntimeException(e);
+				throw new RuntimeException(e);
 			} catch (ExceptionInInitializerError e) {
-				throw new WrapException(e.getCause());
+				throw new RuntimeException(e.getCause());
 			}
 		}
 		if (backUpName == null) {

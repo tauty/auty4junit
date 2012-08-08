@@ -110,7 +110,8 @@ public class Auty {
 	 */
 	public static void assertEqualsWithFile(Object actual, Class<?> clazz,
 			String expectedFileName) {
-		String actStr = dumper(actual).superSafe().classFlatten().primitiveFirst().toString();
+		String actStr = dumper(actual).crlf().superSafe().classFlatten()
+				.primitiveFirst().toString();
 		try {
 			Writer writer = null;
 			try {
@@ -145,7 +146,8 @@ public class Auty {
 
 	public static void assertEqualsWithFile(Object actual, Class<?> clazz,
 			String expectedFileName, int... ignoreLineNo) {
-		String actStr = dumper(actual).superSafe().classFlatten().primitiveFirst().toString();
+		String actStr = dumper(actual).superSafe().classFlatten()
+				.primitiveFirst().toString();
 		try {
 			Writer writer = null;
 			try {
@@ -298,7 +300,8 @@ public class Auty {
 		return genFilePath(clazz, fileName, "/failed");
 	}
 
-	private static String genFilePath(Class<?> clazz, String fileName, String failedPath) {
+	private static String genFilePath(Class<?> clazz, String fileName,
+			String failedPath) {
 		ResourceBundle bundle;
 		try {
 			bundle = ResourceBundle.getBundle("auty");
@@ -313,7 +316,8 @@ public class Auty {
 		String dirPath = rootPath
 				+ "/"
 				+ clazz.getPackage().getName().toLowerCase().replaceAll("\\.",
-						"/") + "/" + subfolder + "/" + clazz.getSimpleName() + failedPath;
+						"/") + "/" + subfolder + "/" + clazz.getSimpleName()
+				+ failedPath;
 		File dir = new File(dirPath);
 		if (!dir.exists())
 			dir.mkdirs();
