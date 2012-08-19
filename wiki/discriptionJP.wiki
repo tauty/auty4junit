@@ -1,0 +1,19 @@
+= Introduction =
+auty4junitは、テスト結果を自動的に生成することでテストの高い生産性を実現する、JUnit補助ツールです。<br>
+TDDやBDDには向きませんが、先にコーディングを行うスタイルで開発を進める場合や、テストコードのないレガシーコードをリファクタリングする場合に力強い味方となります。<br>
+auty4junitでは、通常のテスト向けのAutyクラスと、RDBMSを使ったテスト向けのAutyDBクラスの二つを使って開発を進めていきます。
+
+= Autyクラスの使い方 =
+Autyクラスは、RDBMSを使わないテストで使用します。<br>
+
+
+
+
+= AutyDBクラスの使い方 =
+
+
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
