@@ -5,6 +5,135 @@ auty4junitでは、通常のテスト向けのAutyクラスと、RDBMSを使っ�
 
 = Autyクラスの使い方 =
 Autyクラスは、RDBMSを使わないテストで使用します。<br>
+Autyクラスの使い方は極めて簡単です。例えば下記のようなコードを書いたとします。<br>
+_※ 下記ではソースを「src」フォルダに、テストクラスを「test」フォルダにそれぞれは位置する、一般的なプロジェクト構成であると仮定します。_
+
+
+{{{
+package sample;
+
+import static tetz42.test.Auty.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.Test;
+
+public class ATest {
+
+	static class Sample {
+		int intField1;
+		int intField2;
+		String strField1;
+		String strField2;
+		Map<String, String> mapField = new HashMap<String, String>();
+	}
+
+	@Test
+	public void atest() {
+		Sample sample = new Sample();
+		sample.intField1 = 101;
+		sample.intField2 = 102;
+		sample.strField1 = "文字列１";
+		sample.strField2 = "文字列２";
+		sample.mapField.put("key1", "value1");
+		sample.mapField.put("key2", "value2");
+		sample.mapField.put("key3", "value3");
+
+		assertEqualsWithFile(sample, getClass(), "atest");
+	}
+}
+}}}
+
+Autyクラスのメソッドは、最後から3行目の「assertEqualsWithFile」です。<br>
+このテストクラスを実行すると、一回目はテストケースが失敗して下記のような失敗メッセージが出力されます。<br>
+{{{
+java.lang.AssertionError: No file found. The actual string has been output to the path:
+test\sample\expected\ATest\atest.txt
+ The contents is below:
+Sample{
+	intField1 = 101
+	intField2 = 102
+	strField1 = "文字列１"
+	strField2 = "文字列２"
+	mapField = HashMap{
+		"key1": "value1"
+		"key2": "value2"
+		"key3": "value3"
+	}
+}
+	at org.junit.Assert.fail(Assert.java:91)
+	at tetz42.test.Auty.assertEqualsWithFile(Auty.java:132)
+	at sample.ATest.atest(ATest.java:31)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+                       :
+                       :
+}}}
+
+このとき、あなたがやるべきことは、上記メッセージの「The contents is below:」の下に表示された内容をチェックすることです。<br>
+見ての通り、こちらには「assertEqualsWithFile」の第一パラメータとして渡したオブジェクトのダンプ結果が表示されています。もし内容に問題がなければ、そのままテストケースを再実行してください。<br>
+今度はテストが成功するはずです。<br>
+<br>
+それでは、今度はテストをわざと失敗させてみましょう。<br>
+テストクラスの「atest」メソッドのsample.strField1に値を代入する処理を、下記のように書き換えて見ます。
+
+{{{
+		sample.strField1 = "string1";
+}}}
+
+この状態でテストを再度実行するとテストが失敗して、下記のような失敗メッセージが表示されます。
+
+{{{
+java.lang.AssertionError: Actual data doesn't match! Check the diff message below:
+  expected -> '-', actual -> '+' 
+
+00001|Sample{
+00002|	intField1 = 101
+00003|	intField2 = 102
+00004|-	strField1 = "文字列１"
+00004|+	strField1 = "string1"
+00005|	strField2 = "文字列２"
+00006|	mapField = HashMap{
+00007|		"key1": "value1"
+00008|		"key2": "value2"
+00009|		"key3": "value3"
+00010|	}
+00011|}
+
+You can ignore this assertion error to append parameters at 'assertEqualsWithFile' method like below:
+assertEqualsWithFile(foo, getClass(), "file_name", 4);
+
+	at org.junit.Assert.fail(Assert.java:91)
+	at tetz42.test.Auty.assertSameStrings(Auty.java:240)
+	at tetz42.test.Auty.assertEqualsWithFile(Auty.java:122)
+	at sample.ATest.atest(ATest.java:31)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+                       :
+                       :
+}}}
+
+メッセージ内の行番号の右に「-」が表示されているのが期待値、「+」が表示されているのが実際の値です。<br>
+このdiff情報を元に、実施のソースを直すのか、テストクラスを直すのか、テスト結果を直すのかを選択して対処を行います。<br>
+ここでは、テスト結果を直す対処法について説明します。<br>
+<br>
+「assertEqualsWithFile」によりテスト結果は、<br>
+　　test/第二パラメータのクラスオブジェクトのパッケージ/expected/先クラスオブジェクトのクラス名/第三パラメータのファイル名.txt<br>
+にテキストファイルとして出力されます。<br>
+今回のケースでは、<br>
+　　test/sample/expected/ATest/atest.txt<br>
+が出力結果となります。これをエディタで開いて手作業で修正しても良いのですが、今回は別の方法を取ります。<br>
+「assertEqualsWithFile」では2回目以降の実行でテストケースが失敗した場合、<br>
+　　test/第二パラメータのクラスオブジェクトのパッケージ/expected/先クラスオブジェクトのクラス名/failed/第三パラメータのファイル名.txt<br>
+というパスに新しくダンプした結果のテキストファイルを出力します。<br>
+今回のケースでは、<br>
+　　test/sample/expected/ATest/failed/atest.txt<br>
+というファイルがそれになります。<br>
+
+
+
+
+このメソッドは第一パラメータにテスト対象オブジェクト、第二パラメータに基準となるクラスオブジェクト(後述)、第三パラメータにテスト結果を出力するファイル名を指定します。<br>
+この
 
 
 
