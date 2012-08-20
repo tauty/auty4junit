@@ -4,6 +4,9 @@ TDDやBDDには向きませんが、先にコーディングを行うスタイ�
 auty4junitでは、通常のテスト向けのAutyクラスと、RDBMSを使ったテスト向けのAutyDBクラスの二つを使って開発を進めていきます。
 
 = Autyクラスの使い方 =
+
+== 基本的な使い方 ==
+
 Autyクラスは、RDBMSを使わないテストで使用します。<br>
 Autyクラスの使い方は極めて簡単です。例えば下記のようなコードを書いたとします。<br>
 _※ 下記ではソースを「src」フォルダに、テストクラスを「test」フォルダにそれぞれは位置する、一般的なプロジェクト構成であると仮定します。_
@@ -45,12 +48,12 @@ public class ATest {
 }
 }}}
 
-Autyクラスのメソッドは、最後から3行目の「assertEqualsWithFile」です。<br>
+Autyクラスのメソッドは、最後から3行目の_assertEqualsWithFile _です。<br>
 このテストクラスを実行すると、一回目はテストケースが失敗して下記のような失敗メッセージが出力されます。<br>
 {{{
 java.lang.AssertionError: No file found. The actual string has been output to the path:
 test\sample\expected\ATest\atest.txt
- The contents is below:
+ The contents of the file are as follows:
 Sample{
 	intField1 = 101
 	intField2 = 102
@@ -70,8 +73,8 @@ Sample{
                        :
 }}}
 
-このとき、あなたがやるべきことは、上記メッセージの「The contents is below:」の下に表示された内容をチェックすることです。<br>
-見ての通り、こちらには「assertEqualsWithFile」の第一パラメータとして渡したオブジェクトのダンプ結果が表示されています。もし内容に問題がなければ、そのままテストケースを再実行してください。<br>
+このとき、あなたがやるべきことは、上記メッセージの「The contents of the file are as follows:」の下に表示された内容をチェックすることです。<br>
+見ての通り、こちらには_assertEqualsWithFile _の第一パラメータとして渡したオブジェクトのdump結果が表示されています。もし内容に問題がなければ、そのままテストケースを再実行してください。<br>
 今度はテストが成功するはずです。<br>
 <br>
 それでは、今度はテストをわざと失敗させてみましょう。<br>
@@ -84,7 +87,7 @@ Sample{
 この状態でテストを再度実行するとテストが失敗して、下記のような失敗メッセージが表示されます。
 
 {{{
-java.lang.AssertionError: Actual data doesn't match! Check the diff message below:
+java.lang.AssertionError: Actual data does not match! Check the diff message below:
   expected -> '-', actual -> '+' 
 
 00001|Sample{
@@ -113,29 +116,151 @@ assertEqualsWithFile(foo, getClass(), "file_name", 4);
 }}}
 
 メッセージ内の行番号の右に「-」が表示されているのが期待値、「+」が表示されているのが実際の値です。<br>
-このdiff情報を元に、実施のソースを直すのか、テストクラスを直すのか、テスト結果を直すのかを選択して対処を行います。<br>
-ここでは、テスト結果を直す対処法について説明します。<br>
+実際の開発ではこのdiff情報を元に、テスト対象のソースを直すのか、テストクラスを直すのか、テスト結果を直すのかを選択して対処を行うことになります。<br>
+auty4junitを使った開発でもテスト対象やテストクラスの修正は通常と全く同じですので、ここでは、テスト結果を直す対処法について説明します。<br>
 <br>
-「assertEqualsWithFile」によりテスト結果は、<br>
-　　test/第二パラメータのクラスオブジェクトのパッケージ/expected/先クラスオブジェクトのクラス名/第三パラメータのファイル名.txt<br>
+_assertEqualsWithFile _によりテスト結果は、<br>
+　　_test/第二パラメータのクラスオブジェクトのパッケージ/expected/第二パラメータのクラスオブジェクトのクラス名/第三パラメータのファイル名.txt_<br>
 にテキストファイルとして出力されます。<br>
 今回のケースでは、<br>
-　　test/sample/expected/ATest/atest.txt<br>
-が出力結果となります。これをエディタで開いて手作業で修正しても良いのですが、今回は別の方法を取ります。<br>
-「assertEqualsWithFile」では2回目以降の実行でテストケースが失敗した場合、<br>
-　　test/第二パラメータのクラスオブジェクトのパッケージ/expected/先クラスオブジェクトのクラス名/failed/第三パラメータのファイル名.txt<br>
-というパスに新しくダンプした結果のテキストファイルを出力します。<br>
+　　_test/sample/expected/ATest/atest.txt_<br>
+が出力結果となります。ここで取り得る手は三つあります。<br>
+最初が上記ファイルを普通にエディタで開いて、手作業で修正する手です。今回のケースのように修正量が少なければ、この方法が手っ取り早いでしょう。<br>
+
+次に、上記ファイルを削除してやり直す方法です。auty4junitでは上記ファイルが存在しなければ初回のテストだと判断しますので、再度dump結果を上記ファイルとして出力させることができます。上記diffメッセージのみで新しく出力されるテスト結果が正しいと判断できる場合に有効です。<br>
+
+最後が、失敗時に出力されるdumpファイルを利用する方法です。<br>
+_assertEqualsWithFile _では生成されたdumpファイルとのマッチングでテストケースが失敗した場合、<br>
+　　_test/第二パラメータのクラスオブジェクトのパッケージ/failed/第二パラメータのクラスオブジェクトのクラス名/第三パラメータのファイル名.txt_<br>
+というパスに新しくdumpした結果のテキストファイルを出力します。<br>
 今回のケースでは、<br>
-　　test/sample/expected/ATest/failed/atest.txt<br>
+　　_test/sample/failed/ATest/atest.txt_<br>
 というファイルがそれになります。<br>
+これをテキストエディタで開いて、内容に問題がなければこのファイルで上記expectedフォルダ以下のファイルを上書きします。<br>
 
+上記三つのいずれかの方法でテスト結果を修正あとに再度テストケースを実行すると、今度はテストが成功するはずです。
 
+== 特定行の無視 ==
 
+次に、下記のようなコードを例に考えてみます。
 
-このメソッドは第一パラメータにテスト対象オブジェクト、第二パラメータに基準となるクラスオブジェクト(後述)、第三パラメータにテスト結果を出力するファイル名を指定します。<br>
-この
+{{{
+package sample2;
 
+import static tetz42.test.Auty.*;
 
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.Test;
+
+public class ATest {
+
+	static class Sample {
+		int intField1;
+		int intField2;
+		String strField1;
+		String strField2;
+		Map<String, String> mapField = new HashMap<String, String>();
+	}
+
+	@Test
+	public void atest() {
+		Sample sample = new Sample();
+		sample.intField1 = 101;
+		sample.intField2 = 102;
+		sample.strField1 = "文字列１";
+		sample.strField2 = "文字列２";
+		sample.mapField.put("key1", "value1");
+		sample.mapField.put("key2", "value2");
+		sample.mapField.put("key3", "value3");
+		sample.mapField.put("now", new Date().toString());
+
+		assertEqualsWithFile(sample, getClass(), "atest");
+	}
+}
+}}}
+
+こちらを実行すると、下記のような失敗メッセージが表示されます。
+
+{{{
+java.lang.AssertionError: No file found. The actual string has been output to the path:
+test\sample2\expected\ATest\atest.txt
+ The contents is below:
+Sample{
+	intField1 = 101
+	intField2 = 102
+	strField1 = "文字列１"
+	strField2 = "文字列２"
+	mapField = HashMap{
+		"key1": "value1"
+		"key2": "value2"
+		"key3": "value3"
+		"now": "Mon Aug 20 10:28:52 JST 2012"
+	}
+}
+	at org.junit.Assert.fail(Assert.java:91)
+	at tetz42.test.Auty.assertEqualsWithFile(Auty.java:133)
+	at sample2.ATest.atest(ATest.java:33)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+                       :
+                       :
+}}}
+
+ここまでは前回の例と同じですが、再度テストケースを実行すると前回とは違いテストが失敗してしまい、下記のような失敗メッセージが表示されます。
+
+{{{
+java.lang.AssertionError: Actual data does not match! Check the diff message below:
+  expected -> '-', actual -> '+' 
+
+00001|Sample{
+00002|	intField1 = 101
+00003|	intField2 = 102
+00004|	strField1 = "文字列１"
+00005|	strField2 = "文字列２"
+00006|	mapField = HashMap{
+00007|		"key1": "value1"
+00008|		"key2": "value2"
+00009|		"key3": "value3"
+00010|-		"now": "Mon Aug 20 10:28:52 JST 2012"
+00010|+		"now": "Mon Aug 20 10:31:54 JST 2012"
+00011|	}
+00012|}
+
+You can ignore this assertion error to append parameters at 'assertEqualsWithFile' method like below:
+assertEqualsWithFile(foo, getClass(), "file_name", 10);
+
+	at org.junit.Assert.fail(Assert.java:91)
+	at tetz42.test.Auty.assertSameStrings(Auty.java:241)
+	at tetz42.test.Auty.assertEqualsWithFile(Auty.java:123)
+	at sample2.ATest.atest(ATest.java:33)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+                       :
+                       :
+}}}
+
+原因はソースの最後から5行目の、
+
+{{{
+		sample.mapField.put("now", new Date().toString());
+}}}
+です。システム日時を文字列化した値を代入しているので、実行の度に値が変わってしまっています。<br>
+テスト対象オブジェクト内部に上記のようにシステム日時由来の値やランダム値、新規採番されたIDなど実行の度に変わってしまう値が含まれていることは通常の開発で良くあることです。<br>
+auty4junitではこのような事態に対応するために、特定の行を無視してマッチングを行わないようにする手段を設けています。<br>
+上記失敗メッセージ中に、_「You can ignore this assertion error to append parameters at 'assertEqualsWithFile' method like below:」_ と書かれている箇所があるのに気が付いたでしょうか？この下に、下記のように書かれています。
+{{{
+assertEqualsWithFile(foo, getClass(), "file_name", 10);
+}}}
+
+この第4パラメータの数値は、無視する行番号を表しています。この指示に従い、テストクラスの_assertEqualsWithFile _を使用している箇所を下記のように書き換えます。
+
+{{{
+		assertEqualsWithFile(sample, getClass(), "atest", 10);
+}}}
+
+上記のようにしてテストを再実行すると、今度はテストが成功するはずです。<br>
+なお無視されるのは上記の例では10行目だけですので、他の値はちゃんとチェックされます。<br>
 
 
 = AutyDBクラスの使い方 =
