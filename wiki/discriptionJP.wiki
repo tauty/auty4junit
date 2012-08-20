@@ -9,8 +9,6 @@ auty4junitでは、通常のテスト向けのAutyクラスと、RDBMSを使っ�
 
 Autyクラスは、RDBMSを使わないテストで使用します。<br>
 Autyクラスの使い方は極めて簡単です。例えば下記のようなコードを書いたとします。<br>
-_※ 下記ではソースを「src」フォルダに、テストクラスを「test」フォルダにそれぞれは位置する、一般的なプロジェクト構成であると仮定します。_
-
 
 {{{
 package sample;
@@ -264,10 +262,182 @@ assertEqualsWithFile(foo, getClass(), "file_name", 10);
 
 
 = AutyDBクラスの使い方 =
+※AutyDBは現在ベータ版で、将来インターフェースが大きく変わる可能性があるので、ご注意下さい。<br>
+
+RDBMSと連携するJUnitのテストクラスを作成する場合には、AutyDBを使います。<br>
+
+RDBMSを使った単体テストは、一般に下記のような流れでテストを実施します。
+ # 現在スキーマにあるデータをバックアップしてから削除。
+ # テストデータをスキーマにロードする。
+ # テスト対象コードの実行。
+ # テスト結果の検証。
+ # テストデータを削除し、1. にてバックアップしたデータを復元
+
+AutyDBクラスを使うと上記は、下記のようなコードで実現することになります。
+
+{{{
+package sample;
+
+import static tetz42.test.AutyDB.*;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+
+import org.junit.AfterClass;
+import org.junit.Test;
+
+import tetz42.test.Proc;
+
+public class ADBTest {
+
+	@Test
+	public void atest() throws Exception {
+
+		// 呪文･･･
+		useConnection(new Proc() {
+
+			@Override
+			// 呪文･･･
+			public void run(Connection con) throws Exception {
+
+				// 上記1, 2 指定されたテーブルのデータバックアップ ＆ テストデータ読込
+				prepareDB(ADBTest.class, "atest", "TABLE_A");
+				
+				// 上記1, 2 指定されたテーブルのデータバックアップ ＆ データ削除
+				deleteDB(ADBTest.class, "atest", "TABLE_B");
+
+				// 上記3 テスト対象の実行
+				TestTarget.moveDatasFromTableAToTableB(con);
+
+				// 上記4 指定されたテーブルが空っぽであることの検証
+				assertZero(ADBTest.class, "atest", "TABLE_A");
+				
+				// 上記4 指定されたテーブルが保存されたテスト結果と一致しているか検証
+				assertDB(ADBTest.class, "atest", "TABLE_B");
+			}
+		});
+	}
+
+	@AfterClass
+	public static void bye() throws SQLException {
+		// 上記5 バックアップされたデータの復元
+		restoreAll();
+	}
+}
+}}}
+
+prepareDB, deleteDB, assertZero, assertDBはAutyDBクラスのメソッドで、パラメータは全て、<br>
+ * 第一パラメータ ･･･ クラスオブジェクト(テストデータの特定用)
+ * 第二パラメータ ･･･ テストケース名(テストデータの特定用)
+ * 第三パラメータ以降 ･･･ テーブル名(複数指定可)
+となっています。<br>
+
+ここでは上記で指定されたTABLE_A, TABLE_Bがともにプライマリキーの「id」と、テキストデータが入った「text」という列を持っていて、それぞれ下記に示すデータが格納されていると仮定して、開発の流れを説明します。
+
+<table border="1">
+  <tr><th colspan="2">TABLE_A</th></tr>
+  <tr><th>id</th><th>text</th></tr>
+  <tr><td>1</td><td>いち</td></tr>
+  <tr><td>2</td><td>にい</td></tr>
+  <tr><td>3</td><td>秋刀魚の</td></tr>
+  <tr><td>4</td><td>尻尾</td></tr>
+  <tr><td>5</td><td>ゴリラの</td></tr>
+  <tr><td>6</td><td>息子</td></tr>
+  <tr><td>7</td><td>菜っ葉</td></tr>
+  <tr><td>8</td><td>葉っぱ</td></tr>
+  <tr><td>9</td><td>腐った</td></tr>
+  <tr><td>10</td><td>豆腐</td></tr>
+<table>
+
+<table border="1">
+  <tr><th colspan="2">TABLE_B</th></tr>
+  <tr><th>id</th><th>text</th></tr>
+  <tr><td>1</td><td>一献</td></tr>
+  <tr><td>2</td><td>二献</td></tr>
+  <tr><td>3</td><td>三献です。</td></tr>
+<table>
+
+== テストデータの準備 ==
+まず最初にテストクラスを実行すると、テストケースが失敗して下記失敗メッセージが出力されます。
+
+{{{
+java.lang.AssertionError: No test case data found. Tried to insert some datas as test case data.
+Please check it by the SQL below:
+SELECT * FROM ZUTY_TABLE_A WHERE ZUTY_TESTCASE_NAME = 'atest.prepare#sample.ADBTest'
+If you don't like it, delete it by the SQL below:
+DELETE FROM ZUTY_TABLE_A WHERE ZUTY_TESTCASE_NAME = 'atest.prepare#sample.ADBTest'
+	at org.junit.Assert.fail(Assert.java:91)
+	at tetz42.test.AutyDB.restore(AutyDB.java:219)
+	at tetz42.test.AutyDB.restore(AutyDB.java:206)
+	at tetz42.test.AutyDB.prepareDB(AutyDB.java:62)
+	at sample.ADBTest$1.run(ADBTest.java:26)
+	at tetz42.test.AutyDB.useConnection(AutyDB.java:53)
+	at sample.ADBTest.atest(ADBTest.java:19)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+                      :
+                      :
+}}}
+
+この時、スキーマを確認すると「ZUTY_TABLE_A」というテーブルが新たに生成されているはずです。これはprepareDBメソッド内の処理にて、テストデータ及びバックアップデータを格納するために自動的に生成したテーブルです。
+
+上記テスト失敗メッセージの中に、
+{{{
+SELECT * FROM ZUTY_TABLE_A WHERE ZUTY_TESTCASE_NAME = 'atest.prepare#sample.ADBTest'
+}}}
+というSELECT文が出力されています。これをスキーマ上で実行すると下記のようなデータが得られるはずです。
+
+<table border="1">
+  <tr><th colspan="3">ZUTY_TABLE_A</th></tr>
+  <tr><th>zuty_testcase_name</th><th>id</th><th>text</th></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>1</td><td>いち</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>2</td><td>にい</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>3</td><td>秋刀魚の</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>4</td><td>尻尾</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>5</td><td>ゴリラの</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>6</td><td>息子</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>7</td><td>菜っ葉</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>8</td><td>葉っぱ</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>9</td><td>腐った</td></tr>
+  <tr><td>atest.prepare#sample.ADBTest</td><td>10</td><td>豆腐</td></tr>
+<table>
+
+ここで、上記例でのprepareDBメソッドの動作を詳しく説明します。
+ * TABLE_Aに対するテストデータ＆バックアップデータ保存用のテーブルの「ZUTY_TABLE_A」が存在しないとき、生成する。
+ * TABLE_Aの現在のデータを、テスト起動時のシステム日時を文字列化した値をzuty_testcase_nameに指定して、バックアップとしてZUTY_TABLE_Aに保存する。
+ * 『[テストケース名].prepare#[クラスオブジェクトのフルパス名]』という文字列を生成し、ZUTY_TESTCASE_NAMEに生成した文字列が格納されているデータがあれば、TABLE_Aのデータを削除してからTABLE_Aにコピーする。データがなければ、TABLE_Aの現在のデータを生成した文字列をZUTY_TESTCASE_NAMEに指定してZUTY_TABLE_Aに保存して、上記のテスト失敗エラーを発生させる。
+
+この動作により、上記の自動的に保存されたデータは次回テスト実行時にはテストデータとして自動的に読み込まれるようになります。<br>
+なお、ZUTY_TABLE_Aに保存されたデータに問題が発覚した場合には、直接編集するか、上記テスト失敗メッセージ内にある、
+{{{
+DELETE FROM ZUTY_TABLE_A WHERE ZUTY_TESTCASE_NAME = 'atest.prepare#sample.ADBTest'
+}}}
+というDELETE文を実行し、テストデータを削除してやり直してください。
+
+deleteDBメソッドは指定されたテーブルに対して「ZUTY`_`...」というテーブルを自動生成してバックアップを取るところまではprepareDBと同じですが、その後に指定されたテーブルのデータを削除するところが違います。テスト開始時点でデータを0件にしたいテーブルに対して使用します。<br>
+ここではTABLE_Bに対してZUTY_TABLE_Bというテーブルが生成されて、バックアップデータが保存されます。
+
+テストデータの準備が終わったら、テスト対象クラスを実行します。<br>
+ここでは_TestTarget.moveDatasFromTableAToTableB _というメソッドがテスト対象です。<br>
+テスト対象クラスの動作内容は、メソッド名の通りTABLE_Aのデータを全てTABLE_Bにコピーし、TABLE_Aのデータを削除するものだとして以下の説明を続けます。
+
+== テスト結果の検証 ==
 
 
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+{{{
+java.lang.AssertionError: No expected data found. Tried to insert some datas as expected data.
+Please check it by the SQL below:
+SELECT * FROM ZUTY_TABLE_B WHERE ZUTY_TESTCASE_NAME = 'atest.expected#sample.ADBTest'
+If you don't like it, delete it by the SQL below:
+DELETE FROM ZUTY_TABLE_B WHERE ZUTY_TESTCASE_NAME = 'atest.expected#sample.ADBTest'
+	at org.junit.Assert.fail(Assert.java:91)
+	at tetz42.test.AutyDB.assertDB(AutyDB.java:100)
+	at tetz42.test.AutyDB.assertDB(AutyDB.java:82)
+	at sample.ADBTest$1.run(ADBTest.java:38)
+	at tetz42.test.AutyDB.useConnection(AutyDB.java:53)
+	at sample.ADBTest.atest(ADBTest.java:19)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+                      :
+                      :
+}}}
+
