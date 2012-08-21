@@ -1,0 +1,12 @@
+Sample{
+	intField1 = 101
+	intField2 = 102
+	strField1 = "文字列１"
+	strField2 = "文字列２"
+	mapField = HashMap{
+		"key1": "value1"
+		"key2": "value2"
+		"key3": "value3"
+		"now": "Mon Aug 20 10:28:52 JST 2012"
+	}
+}

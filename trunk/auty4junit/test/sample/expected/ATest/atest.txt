@@ -1,0 +1,11 @@
+Sample{
+	intField1 = 101
+	intField2 = 102
+	strField1 = "string1"
+	strField2 = "文字列２"
+	mapField = HashMap{
+		"key1": "value1"
+		"key2": "value2"
+		"key3": "value3"
+	}
+}
