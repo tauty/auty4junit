@@ -265,6 +265,15 @@ assertEqualsWithFile(foo, getClass(), "file_name", 10);
 ※AutyDBは現在ベータ版です。現状はOracleでしか動作しませんし、将来インターフェースが大きく変わる可能性があるので、ご注意下さい。<br>
 
 RDBMSと連携するJUnitのテストクラスを作成する場合には、AutyDBを使います。<br>
+ ※現在のバージョンではOracleのみに対応しています。<br>
+
+AutyDBをRDBMSに接続させる必要があるので、auty.propertiesというファイルを用意して、下記のように編集してクラスパスの通った場所に置いてください。
+{{{
+DB_CONNECT_STRING=jdbc:oracle:thin:@dbserver:1521:SAMPLEDB
+DB_CONNECT_USER=DB_USER
+DB_CONNECT_PASS=DB_PASS
+}}}
+「DB_CONNECT_STRING」には接続文字列、「DB_CONNECT_USER」には接続ユーザ、「DB_CONNECT_PASS」にはパスワードを、それぞれ環境に合わせて設定してください。
 
 RDBMSを使った単体テストは、一般に下記のような流れでテストを実施します。
  # 現在スキーマにあるデータをバックアップしてから削除。
