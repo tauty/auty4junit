@@ -364,7 +364,7 @@ prepareDB, deleteDB, assertZero, assertDBはAutyDBクラスのメソッドで、
 java.lang.AssertionError: No test case data found. Tried to insert some datas as test case data.
 Please check it by the SQL below:
 SELECT * FROM ZUTY_TABLE_A WHERE ZUTY_TESTCASE_NAME = 'atest.prepare#sample.ADBTest'
-If you don't like it, delete it by the SQL below:
+If you do not like it, delete it by the SQL below:
 DELETE FROM ZUTY_TABLE_A WHERE ZUTY_TESTCASE_NAME = 'atest.prepare#sample.ADBTest'
 	at org.junit.Assert.fail(Assert.java:91)
 	at tetz42.test.AutyDB.restore(AutyDB.java:219)
@@ -417,18 +417,32 @@ deleteDBメソッドは指定されたテーブルに対して「ZUTY`_`...」�
 ここではTABLE_Bに対してZUTY_TABLE_Bというテーブルが生成されて、バックアップデータが保存されます。
 
 テストデータの準備が終わったら、テスト対象クラスを実行します。<br>
+上記テストクラスより、テスト対象の実行を行っている箇所を抜き出します。
+{{{
+				// 上記3 テスト対象の実行
+				TestTarget.moveDatasFromTableAToTableB(con);
+}}}
+
 ここでは_TestTarget.moveDatasFromTableAToTableB _というメソッドがテスト対象です。<br>
 テスト対象クラスの動作内容は、メソッド名の通りTABLE_Aのデータを全てTABLE_Bにコピーし、TABLE_Aのデータを削除するものだとして以下の説明を続けます。
 
 == テスト結果の検証 ==
 
+上記テストクラスより、テスト結果の検証を行っている箇所を抜き出します。
+{{{
+				// 上記4 指定されたテーブルが空っぽであることの検証
+				assertZero(ADBTest.class, "atest", "TABLE_A");
+				
+				// 上記4 指定されたテーブルが保存されたテスト結果と一致しているか検証
+				assertDB(ADBTest.class, "atest", "TABLE_B");
+}}}
 
 
 {{{
 java.lang.AssertionError: No expected data found. Tried to insert some datas as expected data.
 Please check it by the SQL below:
 SELECT * FROM ZUTY_TABLE_B WHERE ZUTY_TESTCASE_NAME = 'atest.expected#sample.ADBTest'
-If you don't like it, delete it by the SQL below:
+If you do not like it, delete it by the SQL below:
 DELETE FROM ZUTY_TABLE_B WHERE ZUTY_TESTCASE_NAME = 'atest.expected#sample.ADBTest'
 	at org.junit.Assert.fail(Assert.java:91)
 	at tetz42.test.AutyDB.assertDB(AutyDB.java:100)
@@ -440,4 +454,3 @@ DELETE FROM ZUTY_TABLE_B WHERE ZUTY_TESTCASE_NAME = 'atest.expected#sample.ADBTe
                       :
                       :
 }}}
-
