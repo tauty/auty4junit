@@ -262,7 +262,7 @@ assertEqualsWithFile(foo, getClass(), "file_name", 10);
 
 
 = AutyDBクラスの使い方 =
-※AutyDBは現在ベータ版で、将来インターフェースが大きく変わる可能性があるので、ご注意下さい。<br>
+※AutyDBは現在ベータ版です。現状はOracleでしか動作しませんし、将来インターフェースが大きく変わる可能性があるので、ご注意下さい。<br>
 
 RDBMSと連携するJUnitのテストクラスを作成する場合には、AutyDBを使います。<br>
 
@@ -437,7 +437,9 @@ deleteDBメソッドは指定されたテーブルに対して「ZUTY`_`...」�
 				assertDB(ADBTest.class, "atest", "TABLE_B");
 }}}
 
+assertZeroは指定されたテーブルがレコード0件であることを検証するメソッドです。テスト対象の実行により、TABLE_AのデータはTABLE_Bに移動されているので、TABLE_Aは空になるはずなので、上記のようにassertZeroにて検証を行っています。
 
+ここでテストクラスを再度実行すると、またテストが失敗して下記のような失敗メッセージが表示されるはずです。
 {{{
 java.lang.AssertionError: No expected data found. Tried to insert some datas as expected data.
 Please check it by the SQL below:
@@ -454,3 +456,144 @@ DELETE FROM ZUTY_TABLE_B WHERE ZUTY_TESTCASE_NAME = 'atest.expected#sample.ADBTe
                       :
                       :
 }}}
+
+これは、assertZeroの次のassertDBメソッドによる検証で発生しています。<br>
+メッセージ中に、
+{{{
+SELECT * FROM ZUTY_TABLE_B WHERE ZUTY_TESTCASE_NAME = 'atest.expected#sample.ADBTest'
+}}}
+というSELECT文がありますが、これを実行すると下記のような結果が得られます。
+
+<table border="1">
+  <tr><th colspan="3">ZUTY_TABLE_B</th></tr>
+  <tr><th>zuty_testcase_name</th><th>id</th><th>text</th></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>1</td><td>いち</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>2</td><td>にい</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>3</td><td>秋刀魚の</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>4</td><td>尻尾</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>5</td><td>ゴリラの</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>6</td><td>息子</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>7</td><td>菜っ葉</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>8</td><td>葉っぱ</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>9</td><td>腐った</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>10</td><td>豆腐</td></tr>
+<table>
+
+assertDBメソッドは、次のように動作します。
+ * TABLE_Bに対するテストデータ＆バックアップデータ保存用のテーブルの「ZUTY_TABLE_B」が存在しないとき、生成する。
+ * TABLE_Bに格納されているテスト結果を、
+ * 『[テストケース名].expected#[クラスオブジェクトのフルパス名]』という文字列を生成し、ZUTY_TESTCASE_NAMEに生成した文字列が格納されているデータがあれば、そのデータとTABLE_Bに格納されているテスト結果とを比較して検証を行う(※1)。データがなければ、TABLE_Bのテスト結果を生成した文字列をZUTY_TESTCASE_NAMEに指定してZUTY_TABLE_Bに保存して、上記のテスト失敗エラーを発生させる。
+ * 上記※1のケースでは、ZUTY_TABLE_Bとテスト結果データとの間に違いがあれば、テストケースを失敗させる。
+
+つまり、assertDBが初回に実行されたときにはまだ『[テストケース名].expected#[クラスオブジェクトのフルパス名]』の文字列でZUTY`_`･･･に保存されたデータがまだないので、初回のテスト結果を保存します。<br>
+そして２回目以降の実行では、保存された値とテスト結果との比較を行う仕組みになっています。<br>
+これにより、DB上に普通にテストデータを構築しておけば、後はprepareDB, deleteDB, assertDB, assertZeroなどにテストに使用するテーブルを記載しておけば、何度かテストクラスを実行するだけで、JUnitのテストが完成する仕組みになっています。
+
+ここでもう一度テストクラスを実行してみましょう。テストの準備データ・検証用データが既に揃っているため、テストが成功するはずです。<br>
+それでは次に、わざとテストを失敗させてみましょう。上記ZUTY_TABLE_Bに格納された検証用データを、下記のように「息子」⇒「ロケット」に書き換えます。
+
+<table border="1">
+  <tr><th colspan="3">ZUTY_TABLE_B</th></tr>
+  <tr><th>zuty_testcase_name</th><th>id</th><th>text</th></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>1</td><td>いち</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>2</td><td>にい</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>3</td><td>秋刀魚の</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>4</td><td>尻尾</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>5</td><td>ゴリラの</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>6</td><td>ロケット</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>7</td><td>菜っ葉</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>8</td><td>葉っぱ</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>9</td><td>腐った</td></tr>
+  <tr><td>atest.expected#sample.ADBTest</td><td>10</td><td>豆腐</td></tr>
+<table>
+
+この状態でテストクラスを実行するとテストが失敗し、下記失敗メッセージが出力されます。
+{{{
+java.lang.AssertionError: Unmatch!
+expected data's key:atest.expected#sample.ADBTest
+PK:ID=6	Not Equals[TEXT] expected:ロケット, but was:息子	
+
+SELECT
+	COALESCE(o.ID, e.ID) A_ID
+	,e.TEXT E_TEXT
+	,o.TEXT O_TEXT
+FROM
+	TABLE_B o
+		LEFT OUTER JOIN ZUTY_TABLE_B e ON
+			e.ZUTY_TESTCASE_NAME = /* @testCaseName */'tetz42.test.AutyDBTest$1#test_sample|prepare'
+			AND ( ( o.ID IS NULL AND e.ID IS NULL) OR (o.ID IS NOT NULL AND e.ID IS NOT NULL AND o.ID = e.ID) )
+WHERE
+	e.ID IS NULL
+	OR (
+		( ( o.ID IS NULL AND e.ID IS NULL) OR (o.ID IS NOT NULL AND e.ID IS NOT NULL AND o.ID = e.ID) )
+		AND (
+			NOT( ( o.TEXT IS NULL AND e.TEXT IS NULL) OR (o.TEXT IS NOT NULL AND e.TEXT IS NOT NULL AND o.TEXT = e.TEXT) )
+		)
+	)
+UNION ALL
+SELECT
+	COALESCE(o.ID, e.ID) A_ID
+	,e.TEXT E_TEXT
+	,o.TEXT O_TEXT
+FROM
+	ZUTY_TABLE_B e
+		LEFT OUTER JOIN TABLE_B o ON
+			( ( o.ID IS NULL AND e.ID IS NULL) OR (o.ID IS NOT NULL AND e.ID IS NOT NULL AND o.ID = e.ID) )
+WHERE
+	e.ZUTY_TESTCASE_NAME = /* @testCaseName */'tetz42.test.AutyDBTest$1#test_sample|prepare'
+	AND o.ID IS NULL
+
+
+testCaseName:atest.expected#sample.ADBTest
+	at org.junit.Assert.fail(Assert.java:91)
+	at tetz42.test.AutyDB.assertDB(AutyDB.java:154)
+	at tetz42.test.AutyDB.assertDB(AutyDB.java:87)
+	at sample.ADBTest$1.run(ADBTest.java:38)
+	at tetz42.test.AutyDB.useConnection(AutyDB.java:52)
+	at sample.ADBTest.atest(ADBTest.java:19)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+　　　　　　　　　　　:
+　　　　　　　　　　　:
+}}}
+
+上記のように、違いが検出された行のプライマリキー、違っていた列の列名及び期待値とテスト結果の値が表示されます。<br>
+その後ろに表示されているSELECT文は、データの検証用に使ったクエリーです。
+
+なお、日付型の列に関しては検証を行わないようにしてあります。これにより、登録日時・更新日時など実行するたびに変わってしまう値があるテーブルであってもテストできるようにしてあります。<br>
+ ※ この日付無視の動作は暫定対応です。将来のバージョンでは変更予定です。
+
+== データの復旧 ==
+最後に、テスト前のデータ復旧についてです。この部分を担当しているソースを上記より抜き出します。
+
+{{{
+	@AfterClass
+	public static void bye() throws SQLException {
+		// 上記5 バックアップされたデータの復元
+		restoreAll();
+	}
+}}}
+
+「@AfterClass」とはJUnit4以降に導入されたアノテーションで、このアノテーションが付与されたメソッドは、テストクラスに実装された全てのテストメソッド(言い換えると、テストケース)が実行された後に、最後に実行されます。
+
+そして、上記restoreAllメソッドは、テストメソッド内部で実行されたprepareDB, deleteDBなどにより保存されたバックアップデータを全て復元します。<br>
+これにより、テスト開始前にdeleteDBメソッドにより削除されていたTABLE_Bの下記データも、元通り復元されていることが確認できるはずです。
+
+<table border="1">
+  <tr><th colspan="2">TABLE_B</th></tr>
+  <tr><th>id</th><th>text</th></tr>
+  <tr><td>1</td><td>一献</td></tr>
+  <tr><td>2</td><td>二献</td></tr>
+  <tr><td>3</td><td>三献です。</td></tr>
+<table>
+
+
+= 最後に =
+以上、auty4junitの動作について、簡単に説明しました。<br>
+上記はversion 0.4.6をベースに説明しておりますが、auty4junitは将来多くのRDBMSをサポートしたり、AutyDBの一部をDBバックアップツールとして独立させたり、また全体をScalaで書き直すなどのバージョンアップが予定されており、インターフェースも大きく変わることが予想されるのでご注意下さい。
+
+それでは最後に、auty4junitと一緒に使用すると幸せになれそうなツールを上げておきます。
+
+ * WinMerge, P4MergeなどのMergeツール(expectedとfailedのテキスト比較に便利)
+ * djUnit(カバレッジ率の測定、テスト漏れの検出)
+ * djUnitのVirtual Mock Object, jMockit等(単体テストにMockは必須でしょ！)
+ * Oracle SQL Developer, OSqlEdit, CSE等(テストデータ作成・テストデータ編集に。)
