@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
+import tetz42.clione.common.Util;
 import tetz42.exception.FileNotFoundException;
 import tetz42.exception.WrapException;
 
@@ -36,7 +37,7 @@ import tetz42.exception.WrapException;
  * Utility class for JUnit.
  *
  * @author tetz
- * @version 0.2.1
+ * @version 0.4.6
  */
 public class Auty {
 
@@ -169,7 +170,7 @@ public class Auty {
 							+ CRLF
 							+ file.getPath()
 							+ CRLF
-							+ " The contents is below:" + CRLF + actStr);
+							+ " The contents of a file are as follows:" + CRLF + actStr);
 				}
 			} finally {
 				if (writer != null)
@@ -195,7 +196,7 @@ public class Auty {
 		String[] expecteds = expected.split(CRLF);
 		String[] actuals = actStr.split(CRLF);
 		StringBuilder sb = new StringBuilder();
-		sb.append("Actual data doesn't match! Check the diff message below:")
+		sb.append("Actual data does not match! Check the diff message below:")
 				.append(CRLF).append("  expected -> '-', actual -> '+' ")
 				.append(CRLF).append(CRLF);
 		int i;
@@ -293,11 +294,11 @@ public class Auty {
 	}
 
 	private static String genFilePath(Class<?> clazz, String fileName) {
-		return genFilePath(clazz, fileName, "");
+		return genFilePath(clazz, fileName, null);
 	}
 
 	private static String genFailPath(Class<?> clazz, String fileName) {
-		return genFilePath(clazz, fileName, "/failed");
+		return genFilePath(clazz, fileName, "failed");
 	}
 
 	private static String genFilePath(Class<?> clazz, String fileName,
@@ -309,15 +310,16 @@ public class Auty {
 			bundle = null;
 		}
 		String rootPath = getBundle(bundle, "expected_file.root.path", "test");
-		String subfolder = getBundle(bundle, "expected_file.subfolder",
-				"expected");
+		// String subfolder = getBundle(bundle, "expected_file.subfolder",
+		// "expected");
+		String subfolder = !Util.isEmpty(failedPath) ? failedPath : getBundle(
+				bundle, "expected_file.subfolder", "expected");
 		String extention = getBundle(bundle, "expected_file.extention", "txt");
 
 		String dirPath = rootPath
 				+ "/"
 				+ clazz.getPackage().getName().toLowerCase().replaceAll("\\.",
-						"/") + "/" + subfolder + "/" + clazz.getSimpleName()
-				+ failedPath;
+						"/") + "/" + subfolder + "/" + clazz.getSimpleName();
 		File dir = new File(dirPath);
 		if (!dir.exists())
 			dir.mkdirs();

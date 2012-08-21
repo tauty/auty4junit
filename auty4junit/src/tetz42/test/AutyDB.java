@@ -18,7 +18,6 @@ import tetz42.clione.common.exception.SQLRuntimeException;
 import tetz42.clione.common.exception.WrapException;
 import tetz42.clione.util.ResultMap;
 import tetz42.exception.TableNotFoundException;
-import tetz42.util.ObjDumper4j;
 
 public class AutyDB {
 
@@ -64,6 +63,12 @@ public class AutyDB {
 		}
 	}
 
+	/**
+	 *
+	 * @param clazz
+	 * @param testCaseName
+	 * @param tableNames
+	 */
 	public static void deleteDB(Class<?> clazz, String testCaseName,
 			String... tableNames) throws SQLException {
 		for (String tableName : tableNames) {
@@ -92,7 +97,6 @@ public class AutyDB {
 						+ TESTCASE_FIELD + " = /* @testCase */").find(
 				Integer.class, params("testCase", testCaseName));
 		if (count == 0) {
-			// TODO this implementation doesn't allow the result record is 0.
 			count = sqlManager.useSQL(getRestoreSQL(tableName, bkTableName))
 					.update(
 							params("tcName", testCaseName).$("FROM_TABLE",
@@ -109,7 +113,7 @@ public class AutyDB {
 					+ testCaseName
 					+ "'"
 					+ CRLF
-					+ "If you don't like it, delete it by the SQL below:"
+					+ "If you do not like it, delete it by the SQL below:"
 					+ CRLF
 					+ "DELETE FROM "
 					+ bkTableName
@@ -228,7 +232,7 @@ public class AutyDB {
 					+ testCaseName
 					+ "'"
 					+ CRLF
-					+ "If you don't like it, delete it by the SQL below:"
+					+ "If you do not like it, delete it by the SQL below:"
 					+ CRLF
 					+ "DELETE FROM "
 					+ bkTableName
@@ -294,7 +298,7 @@ public class AutyDB {
 			// SQL(get difference)
 			buildSelect(sb, pkList, fieldList);
 			StringBuilder sb2 = new StringBuilder().append(sb);
-			buildFrom(sb, tableName, bkName, pkList, fieldList);
+			buildFrom(sb, tableName, bkName, pkList);
 			buildWhere(sb, pkList, fieldList);
 
 			// SQL(expected:exists, original:not exists)
@@ -352,7 +356,7 @@ public class AutyDB {
 	}
 
 	private static void buildFrom(StringBuilder sb, String tableName,
-			String bkName, List<String> pkList, List<ResultMap> fieldList) {
+			String bkName, List<String> pkList) {
 		// from clause
 		sb.append("FROM").append(CRLF).append("\t").append(tableName).append(
 				" o").append(CRLF);
