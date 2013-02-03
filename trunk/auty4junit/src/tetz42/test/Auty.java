@@ -35,13 +35,28 @@ import tetz42.exception.WrapException;
 
 /**
  * Utility class for JUnit.
- *
+ * 
  * @author tetz
  * @version 0.4.6
  */
 public class Auty {
 
 	public static final String CRLF = System.getProperty("line.separator");
+
+	public static void delTree(String path) {
+		delTree(new File(path));
+	}
+
+	public static void delTree(File file) {
+		if (!file.exists())
+			return;
+		if (file.isDirectory()) {
+			for (File child : file.listFiles()) {
+				delTree(child);
+			}
+		}
+		file.delete();
+	}
 
 	public static void swapFile(String path1, String path2) {
 		swapFile(new File(path1), new File(path2));
@@ -104,7 +119,7 @@ public class Auty {
 	/**
 	 * Assertion method for complicated object.<br>
 	 * It provides you an easy test environment.<br>
-	 *
+	 * 
 	 * @param actual
 	 * @param clazz
 	 * @param expectedFileName
@@ -170,7 +185,9 @@ public class Auty {
 							+ CRLF
 							+ file.getPath()
 							+ CRLF
-							+ " The contents of a file are as follows:" + CRLF + actStr);
+							+ " The contents of a file are as follows:"
+							+ CRLF
+							+ actStr);
 				}
 			} finally {
 				if (writer != null)
@@ -202,20 +219,20 @@ public class Auty {
 		int i;
 		for (i = 0; i < actuals.length && i < expecteds.length; i++) {
 			if (actuals[i].equals(expecteds[i])) {
-				sb.append(padZero5(i)).append("|").append(actuals[i]).append(
-						CRLF);
+				sb.append(padZero5(i)).append("|").append(actuals[i])
+						.append(CRLF);
 			} else {
 				sb.append(padZero5(i)).append("|-").append(expecteds[i])
 						.append(CRLF);
-				sb.append(padZero5(i)).append("|+").append(actuals[i]).append(
-						CRLF);
+				sb.append(padZero5(i)).append("|+").append(actuals[i])
+						.append(CRLF);
 				if (!ignoreSet.contains(i))
 					unmatched.add(i);
 			}
 		}
 		for (int j = i; j < expecteds.length; j++) {
-			sb.append(padZero5(j)).append("|-").append(expecteds[j]).append(
-					CRLF);
+			sb.append(padZero5(j)).append("|-").append(expecteds[j])
+					.append(CRLF);
 			if (!ignoreSet.contains(j))
 				unmatched.add(j);
 		}
@@ -227,8 +244,9 @@ public class Auty {
 		if (unmatched.size() == 0) // it means this assertion error was ignored
 			return;
 
-		sb.append(CRLF).append("You can ignore this assertion ").append(
-				"error to append parameters at 'assertEqualsWithFile' ")
+		sb.append(CRLF)
+				.append("You can ignore this assertion ")
+				.append("error to append parameters at 'assertEqualsWithFile' ")
 				.append("method like below:").append(CRLF);
 		sb.append("assertEqualsWithFile(foo, getClass(), \"file_name\", ");
 		for (int k = 0; k < unmatched.size(); k++) {
@@ -318,8 +336,9 @@ public class Auty {
 
 		String dirPath = rootPath
 				+ "/"
-				+ clazz.getPackage().getName().toLowerCase().replaceAll("\\.",
-						"/") + "/" + subfolder + "/" + clazz.getSimpleName();
+				+ clazz.getPackage().getName().toLowerCase()
+						.replaceAll("\\.", "/") + "/" + subfolder + "/"
+				+ clazz.getSimpleName();
 		File dir = new File(dirPath);
 		if (!dir.exists())
 			dir.mkdirs();
